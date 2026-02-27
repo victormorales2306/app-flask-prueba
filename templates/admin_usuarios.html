@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administración de Usuarios</title>
+</head>
+<body>
+    <h2>Panel de administración de usuarios</h2>
+
+    <p><a href="{{ url_for('nuevo_usuario') }}">➕ Crear nuevo usuario</a></p>
+
+    <a href="{{ url_for('dashboard') }}">Volver al dashboard</a>
+    <br><br>
+
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul>
+          {% for msg in messages %}
+            <li style="color:green">{{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    <table border="1" cellpadding="5" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Usuario</th>
+                <th>Nombre</th>
+                <th>Correo</th>
+                <th>Estado</th>
+                <th>Rol</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for u in usuarios %}
+            <tr>
+                <td>{{ u.Usuario }}</td>
+                <td>{{ u.nombre }}</td>
+                <td>{{ u.correo }}</td>
+                <td>{{ u.estado }}</td>
+                <td>{{ u.rol }}</td>
+                <td>
+                    {% if u.estado == 'activo' %}
+                        <a href="{{ url_for('bloquear_usuario', usuario=u.Usuario) }}">Bloquear</a>
+                    {% else %}
+                        <a href="{{ url_for('desbloquear_usuario', usuario=u.Usuario) }}">Desbloquear</a>
+                    {% endif %}
+                    |
+                    <a href="{{ url_for('cambiar_password', usuario=u.Usuario) }}">Cambiar contraseña</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
