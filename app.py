@@ -5,11 +5,13 @@ from datetime import datetime, timedelta
 from functools import wraps
 import csv
 import io
+import os
 
-app = Flask(__name__)
-app.secret_key = "super_secret_key_cambia_esto"
+app = Flask(_name_)
+app.secret_key = os.environ.get("SECRET_KEY")
 
-DB_PATH = r"C:\Users\sdep.vantonio\OneDrive - AES Corporation\Pruebas_conexion\Ubicaciones.db"  # Cambia aquí la ruta correcta a tu .db
+BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+DB_PATH = os.path.join(BASE_DIR, "Ubicaciones.db")
 
 MAX_INTENTOS = 3
 TIEMPO_BLOQUEO_MIN = 15
