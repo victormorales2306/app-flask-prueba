@@ -8,7 +8,10 @@ import io
 import os
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY")
+app.secret_key = os.environ.get(
+    "SECRET_KEY",
+    "f1c2d3e4a5b6c7d8e9f0123456789abcdef0123456789abcdef0123456789abcd"
+)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "Ubicaciones.db")
