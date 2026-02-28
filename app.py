@@ -7,10 +7,10 @@ import csv
 import io
 import os
 
-app = Flask(_name_)
+app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY")
 
-BASE_DIR = os.path.dirname(os.path.abspath(_file_))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "Ubicaciones.db")
 
 MAX_INTENTOS = 3
@@ -359,4 +359,4 @@ def cargar_suscriptores():
 
 if __name__ == "__main__":
     init_db()
-    app.run(debug=True)
+    app.run()
