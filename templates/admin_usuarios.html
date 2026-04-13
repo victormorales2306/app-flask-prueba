@@ -43,12 +43,12 @@
                 <td>{{ u.rol }}</td>
                 <td>
                     {% if u.estado == 'activo' %}
-                        <a href="{{ url_for('bloquear_usuario', usuario=u.Usuario) }}">Bloquear</a>
+                        <a href="{{ url_for('bloquear_usuario', usuario=u.usuario) }}">Bloquear</a>
                     {% else %}
-                        <a href="{{ url_for('desbloquear_usuario', usuario=u.Usuario) }}">Desbloquear</a>
+                        <a href="{{ url_for('desbloquear_usuario', usuario=u.usuario) }}">Desbloquear</a>
                     {% endif %}
                     |
-                    <a href="{{ url_for('cambiar_password', usuario=u.Usuario) }}">Cambiar contraseña</a>
+                    <a href="{{ url_for('cambiar_password', usuario=u.usuario) }}">Cambiar contraseña</a>
                 </td>
             </tr>
             {% endfor %}
