@@ -1,0 +1,27 @@
+# Entorno
+.env
+venv/
+env/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# Base de datos (IMPORTANTE si usas SQLite local)
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# Archivos temporales
+*.tmp

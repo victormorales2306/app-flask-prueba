@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reportes de medidores</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<style>
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: Arial, sans-serif;
+}
+
+/* MAPA FULL SCREEN */
+#map {
+  height: 100%;
+  width: 100%;
+}
+
+/* PANEL LATERAL */
+.sidebar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 340px;
+  max-height: 95vh;
+  background: white;
+  z-index: 1000;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+.sidebar-header {
+  padding: 12px;
+  background: #1976d2;
+  color: white;
+  font-weight: bold;
+}
+
+/* FILTROS */
+.filters {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filters input, .filters button {
+  padding: 8px;
+  font-size: 13px;
+}
+
+button {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.btn {
+  background: #1976d2;
+  color: white;
+}
+
+.btn-export {
+  background: #43a047;
+  color: white;
+}
+
+/* TABLA */
+.table-container {
+  flex: 1;
+  overflow: auto;
+  border-top: 1px solid #ddd;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: #f1f1f1;
+  padding: 6px;
+  border-bottom: 1px solid #ccc;
+}
+
+td {
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+/* BOTÓN COLAPSO */
+.toggle {
+  position: absolute;
+  top: 10px;
+  left: 360px;
+  z-index: 1001;
+  background: #333;
+  color: white;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+</style>
+</head>
+
+<body>
+
+<!-- PANEL -->
+<div class="sidebar" id="sidebar">
+
+  <div class="sidebar-header">
+    📍 Reportes de medidores
+  </div>
+
+  <div class="filters">
+    <label>Desde:</label>
+    <input type="date" id="f_inicio">
+
+    <label>Hasta:</label>
+    <input type="date" id="f_fin">
+
+    <button class="btn" onclick="filtrar()">Filtrar</button>
+    <button class="btn-export" onclick="exportar()">Exportar CSV</button>
+
+    <a href="/" style="text-decoration:none; text-align:center; padding:6px; background:#eee; border-radius:6px;">
+      ← Volver
+    </a>
+  </div>
+
+  <div class="table-container">
+    <table id="tablaReportes">
+      <thead>
+        <tr>
+          <th>Aparato</th>
+          <th>MRU</th>
+          <th>Usuario</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+</div>
+
+<div class="toggle" onclick="toggleSidebar()">☰</div>
+
+<!-- MAPA -->
+<div id="map"></div>
+
+<script>
+
+const map = L.map('map').setView([13.7, -89.2], 10);
+
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19
+}).addTo(map);
+
+const markers = L.layerGroup().addTo(map);
+
+function pintar(data) {
+
+  markers.clearLayers();
+
+  const tbody = document.querySelector("#tablaReportes tbody");
+  tbody.innerHTML = "";
+
+  const bounds = [];
+
+  data.forEach(r => {
+
+    const lat = parseFloat(r.latitud);
+    const lon = parseFloat(r.longitud);
+
+    if (isNaN(lat) || isNaN(lon)) return;
+
+    // MAPA
+    const marker = L.marker([lat, lon]).addTo(markers);
+
+    marker.bindPopup(`
+      <b>📍 Reporte</b><br>
+      Aparato: ${r.aparato}<br>
+      MRU: ${r.mru}<br>
+      Usuario: ${r.usuario}<br>
+      Fecha: ${r.fecha}<br>
+      <small>${r.comentario || ''}</small>
+    `);
+
+    bounds.push([lat, lon]);
+
+    // TABLA
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.aparato || ''}</td>
+        <td>${r.mru || ''}</td>
+        <td>${r.usuario || ''}</td>
+        <td>${r.fecha || ''}</td>
+      </tr>
+    `;
+  });
+
+  if (bounds.length > 0) {
+    map.fitBounds(bounds);
+  }
+}
+
+function cargarReportes() {
+  fetch("/api/reportes")
+    .then(r => r.json())
+    .then(data => pintar(data));
+}
+
+function filtrar() {
+  const inicio = document.getElementById("f_inicio").value;
+  const fin = document.getElementById("f_fin").value;
+
+  let url = "/api/reportes?";
+  if (inicio) url += "inicio=" + inicio + "&";
+  if (fin) url += "fin=" + fin;
+
+  fetch(url)
+    .then(r => r.json())
+    .then(data => pintar(data));
+}
+
+function exportar() {
+  const inicio = document.getElementById("f_inicio").value;
+  const fin = document.getElementById("f_fin").value;
+
+  let url = "/admin/exportar_reportes?";
+  if (inicio) url += "inicio=" + inicio + "&";
+  if (fin) url += "fin=" + fin;
+
+  window.open(url, "_blank");
+}
+
+function toggleSidebar() {
+  const sb = document.getElementById("sidebar");
+  sb.style.display = sb.style.display === "none" ? "flex" : "none";
+}
+
+// INIT
+cargarReportes();
+
+</script>
+
+</body>
+</html>
