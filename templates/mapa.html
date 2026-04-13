@@ -5,10 +5,7 @@
 <title>Mapa de Clientes</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link
-  rel="stylesheet"
-  href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <style>
@@ -61,17 +58,6 @@
     font-size: 14px;
   }
 
-  @media (max-width: 600px) {
-    .panel {
-      top: auto;
-      bottom: 10px;
-      left: 10px;
-      right: 10px;
-      width: auto;
-      max-width: none;
-    }
-  }
-
   .modal {
     display: none;
     position: fixed;
@@ -91,7 +77,6 @@
     max-height: 85%;
     padding: 15px;
     border-radius: 16px 16px 0 0;
-    box-shadow: 0 -2px 10px rgba(0,0,0,.3);
     overflow-y: auto;
   }
 
@@ -107,34 +92,24 @@
   }
 
   .modal-content textarea {
-    resize: none;
     height: 80px;
-  }
-
-  @media (min-width: 600px) {
-    .modal-content {
-      width: 400px;
-      left: 50%;
-      transform: translateX(-50%);
-      bottom: auto;
-      top: 20%;
-      border-radius: 12px;
-    }
+    resize: none;
   }
 </style>
 </head>
+
 <body>
 
 <div class="panel">
   <b>Buscar cliente por SERIALNUMBER</b>
-  <input id="serial" type="number" placeholder="Ej: 12345678" />
+  <input id="serial" type="text" placeholder="Ej: 12345678" />
   <button onclick="buscar()">Buscar</button>
   <button class="secondary" onclick="abrirReporte()">Reportar medidor</button>
 </div>
 
 <div id="map"></div>
 
-<!-- MODAL -->
+<!-- MODAL REPORTE -->
 <div id="modalReporte" class="modal">
   <div class="modal-content">
     <h3>📋 Reportar medidor</h3>
@@ -174,32 +149,21 @@
     shadowSize: [41, 41]
   });
 
-  // 📍 GPS MEJORADO
+  // GPS
   if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      pos => {
-        userLat = pos.coords.latitude;
-        userLon = pos.coords.longitude;
+    navigator.geolocation.getCurrentPosition(pos => {
+      userLat = pos.coords.latitude;
+      userLon = pos.coords.longitude;
 
-        L.marker([userLat, userLon])
-          .addTo(map)
-          .bindPopup("📍 Tu ubicación")
-          .openPopup();
+      L.marker([userLat, userLon])
+        .addTo(map)
+        .bindPopup("📍 Tu ubicación");
 
-        map.setView([userLat, userLon], 13);
-      },
-      err => {
-        console.error(err);
-        alert("No se pudo obtener ubicación");
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 0
-      }
-    );
+      map.setView([userLat, userLon], 13);
+    });
   }
 
+  // 🔴 FIX IMPORTANTE: campos correctos del backend
   function pintarClientes(data, esBusqueda = false) {
     markersLayer.clearLayers();
 
@@ -211,8 +175,10 @@
     const bounds = [];
 
     data.forEach(c => {
-      const lat = parseFloat(c.LATITUDE);
-      const lon = parseFloat(c.LONGITUDE);
+
+      const lat = parseFloat(c.latitude);
+      const lon = parseFloat(c.longitude);
+
       if (isNaN(lat) || isNaN(lon)) return;
 
       const marker = L.marker([lat, lon], esBusqueda ? { icon: redIcon } : {})
@@ -220,12 +186,12 @@
 
       let popupHtml = `
         👤 Cliente<br>
-        Serial: ${c.SERIALNUMBER}
+        Serial: ${c.serialnumber}
       `;
 
       if (userLat && userLon && esBusqueda) {
         const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${lat},${lon}`;
-        popupHtml += `<br><a class="go-btn" href="${gmaps}" target="_blank">🧭 Cómo llegar</a>`;
+        popupHtml += `<br><a class="go-btn" target="_blank" href="${gmaps}">🧭 Cómo llegar</a>`;
       }
 
       marker.bindPopup(popupHtml);
@@ -239,6 +205,7 @@
 
   function buscar() {
     const serial = document.getElementById("serial").value.trim();
+
     if (!serial) {
       alert("Ingresa un SERIALNUMBER válido");
       return;
@@ -247,7 +214,10 @@
     fetch(`/api/clientes?serial=${serial}`)
       .then(r => r.json())
       .then(data => pintarClientes(data, true))
-      .catch(() => alert("Error al buscar cliente"));
+      .catch(err => {
+        console.error(err);
+        alert("Error al buscar cliente");
+      });
   }
 
   function abrirReporte() {
@@ -292,16 +262,12 @@
       fecha: new Date().toISOString()
     };
 
-    console.log("Enviando reporte:", data);
-
     fetch("/api/reportes", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     })
-    .then(res => res.json())
+    .then(r => r.json())
     .then(() => {
       alert("Reporte enviado correctamente 📍");
       cerrarReporte();
