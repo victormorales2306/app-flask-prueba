@@ -302,6 +302,36 @@ def api_reportes():
 
     finally:
         conn.close()
+#--------------------------------- cambiar contraseña --------------------------------------
+
+@app.route('/cambiar_password/<usuario>', methods=['GET', 'POST'])
+@admin_required
+def cambiar_password(usuario):
+    if request.method == 'POST':
+        nueva_password = request.form.get('password')
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        try:
+            hash_pw = generate_password_hash(nueva_password)
+
+            cur.execute("""
+                UPDATE usuarios_sistema
+                SET contrasena = %s
+                WHERE usuario = %s
+            """, (hash_pw, usuario))
+
+            conn.commit()
+            flash('Contraseña actualizada correctamente')
+
+        finally:
+            conn.close()
+
+        return redirect(url_for('admin_usuarios'))
+
+    return render_template('cambiar_password.html', usuario=usuario)
+
 
 # ---------------- EXPORT ----------------
 
