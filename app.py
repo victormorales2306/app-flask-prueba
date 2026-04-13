@@ -29,6 +29,54 @@ def get_db():
         cursor_factory=psycopg2.extras.RealDictCursor
     )
 
+import re
+
+def limpiar_numero(valor):
+    if valor is None:
+        return None
+
+    valor = str(valor).strip().lower()
+
+    # ❌ basura conocida
+    if valor in ["lot", "null", "none", "", "error", "n/a", "na"]:
+        return None
+
+    # 🔧 arreglar coma decimal
+    valor = valor.replace(",", ".")
+
+    # 🔧 quitar símbolos raros (°, letras, etc.)
+    valor = re.sub(r"[^0-9\.\-]", "", valor)
+
+    try:
+        return float(valor)
+    except:
+        return None
+
+
+def corregir_lat_lon(lat, lon):
+    lat = limpiar_numero(lat)
+    lon = limpiar_numero(lon)
+
+    if lat is None or lon is None:
+        return None, None
+
+    # ❌ rangos imposibles
+    if abs(lat) > 90 or abs(lon) > 180:
+        return None, None
+
+    # 🔁 detectar inversión automática
+    # (muy común en CSV mal exportado)
+    if -90 <= lon <= 90 and (abs(lat) > 90 or abs(lon) <= 90):
+        lat, lon = lon, lat
+
+    # 🌍 filtro básico El Salvador (opcional pero recomendado)
+    if not (10 <= abs(lat) <= 20 and -92 <= lon <= -85):
+        return None, None
+
+    return lat, lon
+
+
+
 # ---------------- HELPERS ----------------
 
 def get_ip():
@@ -390,14 +438,21 @@ def cargar_suscriptores():
             cur.execute("DELETE FROM suscriptores_noviembre_2025")
 
             for row in reader:
-                cur.execute("""
-                    INSERT INTO suscriptores_noviembre_2025 (serialnumber, latitude, longitude)
-                    VALUES (%s, %s, %s)
-                """, (
-                    row.get("serialnumber"),
-                    row.get("latitude"),
-                    row.get("longitude")
-                ))
+
+             serial = row.get("serialnumber")
+
+             lat, lon = corregir_lat_lon(
+                  row.get("latitude"),
+                  row.get("longitude")
+             )
+
+             if not serial or lat is None or lon is None:
+               continue
+
+             cur.execute("""
+                 INSERT INTO suscriptores_noviembre_2025 (serialnumber, latitude, longitude)
+                 VALUES (%s, %s, %s)
+             """, (serial, lat, lon))
 
             conn.commit()
             flash("Datos cargados correctamente")
