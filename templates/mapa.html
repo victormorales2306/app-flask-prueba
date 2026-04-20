@@ -121,6 +121,9 @@
     <input id="rep_ref" type="text" placeholder="Aparato de referencia" />
     <textarea id="rep_comentario" placeholder="Comentario"></textarea>
 
+    <!-- 🔥 NUEVO INPUT DE FOTO -->
+    <input id="rep_foto" type="file" accept="image/*">
+
     <button onclick="enviarReporte()">Enviar</button>
     <button class="secondary" onclick="cerrarReporte()">Cancelar</button>
   </div>
@@ -149,7 +152,6 @@
     shadowSize: [41, 41]
   });
 
-  // GPS
   if (navigator.geolocation) {
     navigator.geolocation.getCurrentPosition(pos => {
       userLat = pos.coords.latitude;
@@ -163,7 +165,6 @@
     });
   }
 
-  // 🔴 FIX IMPORTANTE: campos correctos del backend
   function pintarClientes(data, esBusqueda = false) {
     markersLayer.clearLayers();
 
@@ -185,9 +186,12 @@
         .addTo(markersLayer);
 
       let popupHtml = `
-        👤 Cliente<br>
-        Serial: ${c.serialnumber}
-      `;
+    👤 Cliente<br>
+    Serial: ${c.serialnumber}<br>
+    MRU: ${c.mru || 'N/A'}<br>
+    Lat: ${c.latitude}<br>
+    Lon: ${c.longitude}
+`;
 
       if (userLat && userLon && esBusqueda) {
         const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${lat},${lon}`;
@@ -236,44 +240,54 @@
     document.getElementById("modalReporte").style.display = "none";
   }
 
+  // 🔥 FUNCIÓN MODIFICADA PARA SOPORTAR FOTO
   function enviarReporte() {
-    const aparato = document.getElementById("rep_aparato").value.trim();
-    const mru = document.getElementById("rep_mru").value.trim();
-    const ref = document.getElementById("rep_ref").value.trim();
-    const comentario = document.getElementById("rep_comentario").value.trim();
+  const aparato = document.getElementById("rep_aparato").value.trim();
+  const mru = document.getElementById("rep_mru").value.trim();
+  const ref = document.getElementById("rep_ref").value.trim();
+  const comentario = document.getElementById("rep_comentario").value.trim();
+  const foto = document.getElementById("rep_foto").files[0];
 
-    if (!aparato || !mru) {
-      alert("Aparato y MRU son obligatorios");
-      return;
-    }
-
-    if (!userLat || !userLon) {
-      alert("No se pudo obtener ubicación GPS");
-      return;
-    }
-
-    const data = {
-      aparato,
-      mru,
-      referencia: ref,
-      comentario,
-      latitud: userLat,
-      longitud: userLon,
-      fecha: new Date().toISOString()
-    };
-
-    fetch("/api/reportes", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    })
-    .then(r => r.json())
-    .then(() => {
-      alert("Reporte enviado correctamente 📍");
-      cerrarReporte();
-    })
-    .catch(() => alert("Error al enviar reporte"));
+  if (!aparato || !mru) {
+    alert("Aparato y MRU son obligatorios");
+    return;
   }
+
+  if (!userLat || !userLon) {
+    alert("No se pudo obtener ubicación GPS");
+    return;
+  }
+
+  const formData = new FormData();
+
+  formData.append("aparato", aparato);
+  formData.append("mru", mru);
+  formData.append("referencia", ref);
+  formData.append("comentario", comentario);
+  formData.append("latitud", userLat);
+  formData.append("longitud", userLon);
+  formData.append("fecha", new Date().toISOString());
+
+  if (foto) {
+    formData.append("foto", foto);
+  }
+
+  fetch("/api/reportes", {
+    method: "POST",
+    body: formData
+  })
+  .then(r => r.json())
+  .then(res => {
+    console.log(res);
+    alert("Reporte enviado correctamente 📍");
+    cerrarReporte();
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error al enviar reporte");
+  });
+
+}
 </script>
 
 </body>

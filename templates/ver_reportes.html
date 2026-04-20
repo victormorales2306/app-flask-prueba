@@ -14,14 +14,8 @@ html, body {
   margin: 0;
   font-family: Arial, sans-serif;
 }
+#map { height: 100%; width: 100%; }
 
-/* MAPA FULL SCREEN */
-#map {
-  height: 100%;
-  width: 100%;
-}
-
-/* PANEL LATERAL */
 .sidebar {
   position: absolute;
   top: 10px;
@@ -37,7 +31,6 @@ html, body {
   flex-direction: column;
 }
 
-/* HEADER */
 .sidebar-header {
   padding: 12px;
   background: #1976d2;
@@ -45,7 +38,6 @@ html, body {
   font-weight: bold;
 }
 
-/* FILTROS */
 .filters {
   padding: 10px;
   display: flex;
@@ -64,17 +56,9 @@ button {
   cursor: pointer;
 }
 
-.btn {
-  background: #1976d2;
-  color: white;
-}
+.btn { background: #1976d2; color: white; }
+.btn-export { background: #43a047; color: white; }
 
-.btn-export {
-  background: #43a047;
-  color: white;
-}
-
-/* TABLA */
 .table-container {
   flex: 1;
   overflow: auto;
@@ -100,7 +84,6 @@ td {
   border-bottom: 1px solid #eee;
 }
 
-/* BOTÓN COLAPSO */
 .toggle {
   position: absolute;
   top: 10px;
@@ -117,7 +100,6 @@ td {
 
 <body>
 
-<!-- PANEL -->
 <div class="sidebar" id="sidebar">
 
   <div class="sidebar-header">
@@ -132,7 +114,7 @@ td {
     <input type="date" id="f_fin">
 
     <button class="btn" onclick="filtrar()">Filtrar</button>
-    <button class="btn-export" onclick="exportar()">Exportar CSV</button>
+    <button class="btn-export" onclick="exportar()">📊 Exportar Excel</button>
 
     <a href="/" style="text-decoration:none; text-align:center; padding:6px; background:#eee; border-radius:6px;">
       ← Volver
@@ -157,7 +139,6 @@ td {
 
 <div class="toggle" onclick="toggleSidebar()">☰</div>
 
-<!-- MAPA -->
 <div id="map"></div>
 
 <script>
@@ -170,7 +151,24 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const markers = L.layerGroup().addTo(map);
 
-function pintar(data) {
+/* 🔥 NUEVO: buscar foto por cercanía */
+function buscarFotoCercana(reporte, fotos) {
+  const lat1 = parseFloat(reporte.latitud);
+  const lon1 = parseFloat(reporte.longitud);
+
+  return fotos.find(f => {
+    const lat2 = parseFloat(f.latitud);
+    const lon2 = parseFloat(f.longitud);
+
+    return (
+      Math.abs(lat1 - lat2) < 0.0005 &&
+      Math.abs(lon1 - lon2) < 0.0005
+    );
+  });
+}
+
+/* 🔥 MODIFICADO: ahora recibe fotos */
+function pintar(data, fotos) {
 
   markers.clearLayers();
 
@@ -186,21 +184,34 @@ function pintar(data) {
 
     if (isNaN(lat) || isNaN(lon)) return;
 
-    // MAPA
+    /* 🔥 NUEVO */
+    const foto = buscarFotoCercana(r, fotos);
+
+    let imgHtml = "";
+    if (foto) {
+      imgHtml = `<br><img src="/static/${foto.ruta}" style="width:150px;border-radius:8px;margin-top:5px;">`;
+    }
+
     const marker = L.marker([lat, lon]).addTo(markers);
 
-    marker.bindPopup(`
-      <b>📍 Reporte</b><br>
-      Aparato: ${r.aparato}<br>
-      MRU: ${r.mru}<br>
-      Usuario: ${r.usuario}<br>
-      Fecha: ${r.fecha}<br>
-      <small>${r.comentario || ''}</small>
-    `);
+    let fotoHTML = "";
+
+if (r.foto) {
+  fotoHTML = `<br><img src="/static/${r.foto}" style="width:100%; max-width:200px; border-radius:8px;">`;
+}
+
+marker.bindPopup(`
+  <b>📍 Reporte</b><br>
+  Aparato: ${r.aparato}<br>
+  MRU: ${r.mru}<br>
+  Usuario: ${r.usuario}<br>
+  Fecha: ${r.fecha}<br>
+  <small>${r.comentario || ''}</small>
+  ${fotoHTML}
+`);
 
     bounds.push([lat, lon]);
 
-    // TABLA
     tbody.innerHTML += `
       <tr>
         <td>${r.aparato || ''}</td>
@@ -216,12 +227,17 @@ function pintar(data) {
   }
 }
 
-function cargarReportes() {
+/* 🔥 MODIFICADO */
+  function cargarReportes() {
   fetch("/api/reportes")
     .then(r => r.json())
-    .then(data => pintar(data));
+    .then(reportes => {
+      pintar(reportes, []);
+    });
 }
 
+
+/* 🔹 NO SE TOCAN */
 function filtrar() {
   const inicio = document.getElementById("f_inicio").value;
   const fin = document.getElementById("f_fin").value;
@@ -231,8 +247,10 @@ function filtrar() {
   if (fin) url += "fin=" + fin;
 
   fetch(url)
-    .then(r => r.json())
-    .then(data => pintar(data));
+  .then(r => r.json())
+  .then(reportes => {
+    pintar(reportes, []);
+  }); // 👈 mantiene compatibilidad
 }
 
 function exportar() {
@@ -251,7 +269,6 @@ function toggleSidebar() {
   sb.style.display = sb.style.display === "none" ? "flex" : "none";
 }
 
-// INIT
 cargarReportes();
 
 </script>

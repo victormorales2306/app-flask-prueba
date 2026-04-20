@@ -8,6 +8,9 @@ import csv
 import io
 import os
 from dotenv import load_dotenv
+from werkzeug.utils import secure_filename
+from openpyxl import Workbook
+from flask import send_file
 
 load_dotenv()
 
@@ -15,10 +18,19 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
-print("DATABASE_URL =", DATABASE_URL)
 
 MAX_INTENTOS = 3
 TIEMPO_BLOQUEO_MIN = 15
+
+# ---------------- FOTOS ----------------
+
+UPLOAD_FOLDER = os.path.join("static", "uploads")
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
+
+def allowed_file(filename):
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 # ---------------- DB ----------------
 
@@ -28,54 +40,6 @@ def get_db():
         sslmode="require",
         cursor_factory=psycopg2.extras.RealDictCursor
     )
-
-import re
-
-def limpiar_numero(valor):
-    if valor is None:
-        return None
-
-    valor = str(valor).strip().lower()
-
-    # ❌ basura conocida
-    if valor in ["lot", "null", "none", "", "error", "n/a", "na"]:
-        return None
-
-    # 🔧 arreglar coma decimal
-    valor = valor.replace(",", ".")
-
-    # 🔧 quitar símbolos raros (°, letras, etc.)
-    valor = re.sub(r"[^0-9\.\-]", "", valor)
-
-    try:
-        return float(valor)
-    except:
-        return None
-
-
-def corregir_lat_lon(lat, lon):
-    lat = limpiar_numero(lat)
-    lon = limpiar_numero(lon)
-
-    if lat is None or lon is None:
-        return None, None
-
-    # ❌ rangos imposibles
-    if abs(lat) > 90 or abs(lon) > 180:
-        return None, None
-
-    # 🔁 detectar inversión automática
-    # (muy común en CSV mal exportado)
-    if -90 <= lon <= 90 and (abs(lat) > 90 or abs(lon) <= 90):
-        lat, lon = lon, lat
-
-    # 🌍 filtro básico El Salvador (opcional pero recomendado)
-    if not (10 <= abs(lat) <= 20 and -92 <= lon <= -85):
-        return None, None
-
-    return lat, lon
-
-
 
 # ---------------- HELPERS ----------------
 
@@ -159,21 +123,329 @@ def login():
 def dashboard():
     return render_template("dashboard.html", usuario=session["usuario"], rol=session["rol"])
 
-
 # ---------------- LOGOUT ----------------
 
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
-#--------------ver_reportes------------------------
+
+# ---------------- VER REPORTES ----------------
+
 @app.route("/ver_reportes")
 def ver_reportes():
     if "usuario" not in session:
         return redirect(url_for("login"))
     return render_template("ver_reportes.html")
-# ---------------- ADMIN USUARIOS ----------------
 
+# ---------------- CLIENTES ----------------
+
+@app.route("/api/clientes")
+def api_clientes():
+    serial = request.args.get("serial")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        if serial:
+            cur.execute("""
+                SELECT serialnumber, latitude, longitude, mru
+                FROM suscriptores_noviembre_2025
+                WHERE serialnumber = %s
+            """, (serial,))
+        else:
+            cur.execute("""
+                SELECT serialnumber, latitude, longitude, mru
+                FROM suscriptores_noviembre_2025
+                LIMIT 200
+            """)
+
+        return jsonify(cur.fetchall())
+
+    finally:
+        conn.close()
+
+# ---------------- REPORTES ----------------
+
+@app.route("/api/reportes", methods=["GET"])
+def obtener_reportes():
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    fecha_inicio = request.args.get("inicio")
+    fecha_fin = request.args.get("fin")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        query = """
+            SELECT aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha, foto
+            FROM reportes_medidores
+            WHERE 1=1
+        """
+
+        params = []
+
+        if fecha_inicio:
+            query += " AND fecha::date >= %s"
+            params.append(fecha_inicio)
+
+        if fecha_fin:
+            query += " AND fecha::date <= %s"
+            params.append(fecha_fin)
+
+        query += " ORDER BY fecha DESC LIMIT 200"
+
+        cur.execute(query, tuple(params))
+        return jsonify(cur.fetchall())
+
+    finally:
+        conn.close()
+
+# 🔥 AQUÍ ESTÁ LA CORRECCIÓN REAL
+@app.route("/api/reportes", methods=["POST"])
+def api_reportes():
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        # Detecta tipo de envío
+        if request.content_type and "application/json" in request.content_type:
+            data = request.get_json()
+
+            aparato = data.get("aparato")
+            mru = data.get("mru")
+            referencia = data.get("referencia")
+            comentario = data.get("comentario")
+            latitud = data.get("latitud")
+            longitud = data.get("longitud")
+            fecha = data.get("fecha")
+
+            foto_ruta = None
+
+        else:
+            aparato = request.form.get("aparato")
+            mru = request.form.get("mru")
+            referencia = request.form.get("referencia")
+            comentario = request.form.get("comentario")
+            latitud = request.form.get("latitud")
+            longitud = request.form.get("longitud")
+            fecha = request.form.get("fecha")
+
+            foto_ruta = None
+
+            if "foto" in request.files:
+                archivo = request.files["foto"]
+
+                if archivo and archivo.filename != "" and allowed_file(archivo.filename):
+                    nombre = secure_filename(archivo.filename)
+                    nombre_final = f"{int(datetime.now().timestamp())}_{nombre}"
+
+                    ruta_relativa = os.path.join("uploads", nombre_final)
+                    ruta_fisica = os.path.join("static", ruta_relativa)
+
+                    archivo.save(ruta_fisica)
+
+                    foto_ruta = ruta_relativa.replace("\\", "/")
+
+        cur.execute("""
+            INSERT INTO reportes_medidores
+            (aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha, foto)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (
+            aparato,
+            mru,
+            referencia,
+            comentario,
+            latitud,
+            longitud,
+            session["usuario"],
+            fecha,
+            foto_ruta
+        ))
+
+        conn.commit()
+
+        return jsonify({"status": "ok"})
+
+    except Exception as e:
+        print("ERROR:", e)
+        return jsonify({"error": "Error al guardar"}), 500
+
+    finally:
+        conn.close()
+
+# ---------------- EXPORT ----------------
+@app.route("/admin/exportar_reportes")
+@admin_required
+def exportar_reportes():
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT aparato, mru, referencia, comentario,
+                   latitud, longitud, usuario, fecha, foto
+            FROM reportes_medidores
+            ORDER BY fecha DESC
+        """)
+
+        rows = cur.fetchall()
+
+        wb = Workbook()
+        ws = wb.active
+        ws.title = "Reportes"
+
+        ws.append([
+            "APARATO","MRU","REFERENCIA","COMENTARIO",
+            "LAT","LON","USUARIO","FECHA","FOTO"
+        ])
+
+        base_url = request.host_url.rstrip("/")
+
+        for r in rows:
+            ws.append([
+                r["aparato"],
+                r["mru"],
+                r["referencia"],
+                r["comentario"],
+                r["latitud"],
+                r["longitud"],
+                r["usuario"],
+                r["fecha"],
+                "ver foto" if r["foto"] else ""
+            ])
+
+            if r["foto"]:
+                fila = ws.max_row
+                celda = ws[f"I{fila}"]
+
+                url = f'{base_url}/static/{r["foto"]}'
+
+                celda.value = "ver foto"
+                celda.hyperlink = url
+                celda.style = "Hyperlink"
+
+        file_path = "reportes.xlsx"
+        wb.save(file_path)
+
+        return send_file(file_path, as_attachment=True)
+
+    finally:
+        conn.close()
+# ---------------- INTENTOS ----------------
+
+def registrar_intento(ip, conn):
+    cur = conn.cursor()
+
+    cur.execute("SELECT * FROM intentos_login WHERE ip = %s", (ip,))
+    data = cur.fetchone()
+
+    if data:
+        intentos = data["intentos"] + 1
+        if intentos >= MAX_INTENTOS:
+            bloqueo = datetime.now() + timedelta(minutes=TIEMPO_BLOQUEO_MIN)
+            cur.execute("""
+                UPDATE intentos_login 
+                SET intentos=%s, bloqueado_hasta=%s 
+                WHERE ip=%s
+            """, (intentos, bloqueo, ip))
+        else:
+            cur.execute("UPDATE intentos_login SET intentos=%s WHERE ip=%s", (intentos, ip))
+    else:
+        cur.execute("INSERT INTO intentos_login (ip, intentos) VALUES (%s, 1)", (ip,))
+
+    conn.commit()
+
+def limpiar_intentos(ip, conn):
+    cur = conn.cursor()
+    cur.execute("DELETE FROM intentos_login WHERE ip = %s", (ip,))
+    conn.commit()
+#---------------------agregado ya que la ia lo elimino -------------
+@app.route("/admin/cargar_suscriptores", methods=["GET", "POST"])
+@admin_required
+def cargar_suscriptores():
+    if request.method == "POST":
+        archivo = request.files.get("archivo")
+
+        if not archivo:
+            flash("No se seleccionó archivo")
+            return redirect(url_for("cargar_suscriptores"))
+
+        import tempfile
+
+        contenido = archivo.read().decode("utf-8").lstrip('\ufeff')
+
+        # 🔥 limpiar líneas vacías
+        lineas = [l for l in contenido.splitlines() if l.strip() != ""]
+        contenido = "\n".join(lineas)  
+
+        # 🔹 guardar temporalmente el CSV
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".csv") as temp:
+            temp.write(contenido)
+            temp_path = temp.name
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        try:
+            # 🔒 iniciar transacción segura
+            conn.autocommit = False
+
+            # 1️⃣ crear tabla temporal
+            cur.execute("""
+                CREATE TEMP TABLE temp_suscriptores (
+                    serialnumber TEXT,
+                    latitude DOUBLE PRECISION,
+                    longitude DOUBLE PRECISION,
+                    mru TEXT
+                ) ON COMMIT DROP;
+            """)
+
+            # 2️⃣ cargar datos masivamente
+            with open(temp_path, 'r') as f:
+                cur.copy_expert("""
+                    COPY temp_suscriptores(serialnumber, latitude, longitude, mru)
+                    FROM STDIN WITH CSV HEADER
+                """, f)
+
+            # 3️⃣ limpiar datos inválidos
+            cur.execute("""
+                DELETE FROM temp_suscriptores
+                WHERE latitude = 0 OR longitude = 0 OR serialnumber IS NULL;
+            """)
+
+            # 4️⃣ reemplazo seguro
+            cur.execute("DELETE FROM suscriptores_noviembre_2025")
+
+            cur.execute("""
+                INSERT INTO suscriptores_noviembre_2025 (serialnumber, latitude, longitude, mru)
+                SELECT serialnumber, latitude, longitude, mru
+                FROM temp_suscriptores;
+            """)
+
+            # ✅ confirmar todo
+            conn.commit()
+
+            flash("Carga masiva completada 🚀")
+
+        except Exception as e:
+            conn.rollback()
+            print("ERROR:", e)
+            flash("Error en la carga")
+
+        finally:
+            conn.close()
+
+        return redirect(url_for("cargar_suscriptores"))
+
+    return render_template("cargar_suscriptores.html")
+#-----------------------------otro eliminado de la IA -----------------------------------
 @app.route("/admin/usuarios")
 @admin_required
 def admin_usuarios():
@@ -181,41 +453,17 @@ def admin_usuarios():
     cur = conn.cursor()
 
     try:
-        cur.execute("SELECT usuario, nombre, correo, estado, rol FROM usuarios_sistema ORDER BY usuario")
+        cur.execute("""
+            SELECT usuario, nombre, correo, estado, rol
+            FROM usuarios_sistema
+            ORDER BY usuario
+        """)
         usuarios = cur.fetchall()
         return render_template("admin_usuarios.html", usuarios=usuarios)
     finally:
         conn.close()
 
-@app.route("/admin/usuario/<usuario>/bloquear")
-@admin_required
-def bloquear_usuario(usuario):
-    conn = get_db()
-    cur = conn.cursor()
-
-    try:
-        cur.execute("UPDATE usuarios_sistema SET estado = 'bloqueado' WHERE usuario = %s", (usuario,))
-        conn.commit()
-        flash(f"Usuario {usuario} bloqueado.")
-    finally:
-        conn.close()
-
-    return redirect(url_for("admin_usuarios"))
-
-@app.route("/admin/usuario/<usuario>/desbloquear")
-@admin_required
-def desbloquear_usuario(usuario):
-    conn = get_db()
-    cur = conn.cursor()
-
-    try:
-        cur.execute("UPDATE usuarios_sistema SET estado = 'activo' WHERE usuario = %s", (usuario,))
-        conn.commit()
-        flash(f"Usuario {usuario} desbloqueado.")
-    finally:
-        conn.close()
-
-    return redirect(url_for("admin_usuarios"))
+#------------------ no eliminar del codigo  ----------------
 
 @app.route("/admin/usuario/nuevo", methods=["GET", "POST"])
 @admin_required
@@ -253,117 +501,64 @@ def nuevo_usuario():
 
     return render_template("nuevo_usuario.html")
 
-# ---------------- CLIENTES ----------------
-
-@app.route("/api/clientes")
-def api_clientes():
-    serial = request.args.get("serial")
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    try:
-        if serial:
-            cur.execute("""
-                SELECT serialnumber, latitude, longitude
-                FROM suscriptores_noviembre_2025
-                WHERE serialnumber = %s
-            """, (serial,))
-        else:
-            cur.execute("""
-                SELECT serialnumber, latitude, longitude
-                FROM suscriptores_noviembre_2025
-                LIMIT 200
-            """)
-
-        return jsonify(cur.fetchall())
-
-    finally:
-        conn.close()
-
-# ---------------- REPORTES ----------------
-
-@app.route("/api/reportes", methods=["GET"])
-def obtener_reportes():
-    if "usuario" not in session:
-        return jsonify({"error": "No autorizado"}), 401
-
-    fecha_inicio = request.args.get("inicio")
-    fecha_fin = request.args.get("fin")
-
-    conn = get_db()
-    cur = conn.cursor()
-
-    try:
-        query = """
-            SELECT aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha
-            FROM reportes_medidores
-            WHERE 1=1
-        """
-
-        params = []
-
-        if fecha_inicio:
-            query += " AND fecha::date >= %s"
-            params.append(fecha_inicio)
-
-        if fecha_fin:
-            query += " AND fecha::date <= %s"
-            params.append(fecha_fin)
-
-        query += " ORDER BY fecha DESC LIMIT 200"
-
-        cur.execute(query, tuple(params))
-        return jsonify(cur.fetchall())
-
-    finally:
-        conn.close()
-
-@app.route("/api/reportes", methods=["POST"])
-def api_reportes():
-    if "usuario" not in session:
-        return jsonify({"error": "No autorizado"}), 401
-
-    data = request.get_json()
-
+#-------------------------------------
+@app.route("/admin/usuario/<usuario>/bloquear")
+@admin_required
+def bloquear_usuario(usuario):
     conn = get_db()
     cur = conn.cursor()
 
     try:
         cur.execute("""
-            INSERT INTO reportes_medidores 
-            (aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            data.get("aparato"),
-            data.get("mru"),
-            data.get("referencia"),
-            data.get("comentario"),
-            data.get("latitud"),
-            data.get("longitud"),
-            session["usuario"],
-            data.get("fecha")
-        ))
+            UPDATE usuarios_sistema
+            SET estado = 'bloqueado'
+            WHERE usuario = %s
+        """, (usuario,))
 
         conn.commit()
-        return jsonify({"status": "ok"})
+        flash(f"Usuario {usuario} bloqueado.")
 
     finally:
         conn.close()
-#--------------------------------- cambiar contraseña --------------------------------------
 
+    return redirect(url_for("admin_usuarios"))
+
+#-----------------------------------------
+@app.route("/admin/usuario/<usuario>/desbloquear")
+@admin_required
+def desbloquear_usuario(usuario):
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            UPDATE usuarios_sistema
+            SET estado = 'activo'
+            WHERE usuario = %s
+        """, (usuario,))
+
+        conn.commit()
+        flash(f"Usuario {usuario} desbloqueado.")
+
+    finally:
+        conn.close()
+
+    return redirect(url_for("admin_usuarios"))
+
+#-------------------------------------------
 @app.route('/cambiar_password/<usuario>', methods=['GET', 'POST'])
 @admin_required
 def cambiar_password(usuario):
+
     if request.method == 'POST':
         nueva_password = request.form.get('password')
+
+        hash_pw = generate_password_hash(nueva_password)
 
         conn = get_db()
         cur = conn.cursor()
 
         try:
-            hash_pw = generate_password_hash(nueva_password)
-
             cur.execute("""
                 UPDATE usuarios_sistema
                 SET contrasena = %s
@@ -379,119 +574,6 @@ def cambiar_password(usuario):
         return redirect(url_for('admin_usuarios'))
 
     return render_template('cambiar_password.html', usuario=usuario)
-
-
-# ---------------- EXPORT ----------------
-
-@app.route("/admin/exportar_reportes")
-@admin_required
-def exportar_reportes():
-    conn = get_db()
-    cur = conn.cursor()
-
-    try:
-        cur.execute("""
-            SELECT aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha
-            FROM reportes_medidores
-            ORDER BY fecha DESC
-        """)
-
-        rows = cur.fetchall()
-
-        output = io.StringIO()
-        writer = csv.writer(output)
-
-        writer.writerow(["APARATO","MRU","REFERENCIA","COMENTARIO","LAT","LON","USUARIO","FECHA"])
-
-        for r in rows:
-            writer.writerow([
-                r["aparato"], r["mru"], r["referencia"],
-                r["comentario"], r["latitud"], r["longitud"],
-                r["usuario"], r["fecha"]
-            ])
-
-        output.seek(0)
-
-        return app.response_class(
-            output,
-            mimetype="text/csv",
-            headers={"Content-Disposition": "attachment; filename=reportes.csv"}
-        )
-
-    finally:
-        conn.close()
-
-# ---------------- CSV CARGA ----------------
-
-@app.route("/admin/cargar_suscriptores", methods=["GET", "POST"])
-@admin_required
-def cargar_suscriptores():
-    if request.method == "POST":
-        archivo = request.files["archivo"]
-        contenido = archivo.read().decode("utf-8")
-        reader = csv.DictReader(io.StringIO(contenido))
-
-        conn = get_db()
-        cur = conn.cursor()
-
-        try:
-            cur.execute("DELETE FROM suscriptores_noviembre_2025")
-
-            for row in reader:
-
-             serial = row.get("serialnumber")
-
-             lat, lon = corregir_lat_lon(
-                  row.get("latitude"),
-                  row.get("longitude")
-             )
-
-             if not serial or lat is None or lon is None:
-               continue
-
-             cur.execute("""
-                 INSERT INTO suscriptores_noviembre_2025 (serialnumber, latitude, longitude)
-                 VALUES (%s, %s, %s)
-             """, (serial, lat, lon))
-
-            conn.commit()
-            flash("Datos cargados correctamente")
-
-        finally:
-            conn.close()
-
-        return redirect(url_for("cargar_suscriptores"))
-
-    return render_template("cargar_suscriptores.html")
-
-# ---------------- INTENTOS ----------------
-
-def registrar_intento(ip, conn):
-    cur = conn.cursor()
-
-    cur.execute("SELECT * FROM intentos_login WHERE ip = %s", (ip,))
-    data = cur.fetchone()
-
-    if data:
-        intentos = data["intentos"] + 1
-        if intentos >= MAX_INTENTOS:
-            bloqueo = datetime.now() + timedelta(minutes=TIEMPO_BLOQUEO_MIN)
-            cur.execute("""
-                UPDATE intentos_login 
-                SET intentos=%s, bloqueado_hasta=%s 
-                WHERE ip=%s
-            """, (intentos, bloqueo, ip))
-        else:
-            cur.execute("UPDATE intentos_login SET intentos=%s WHERE ip=%s", (intentos, ip))
-    else:
-        cur.execute("INSERT INTO intentos_login (ip, intentos) VALUES (%s, 1)", (ip,))
-
-    conn.commit()
-
-def limpiar_intentos(ip, conn):
-    cur = conn.cursor()
-    cur.execute("DELETE FROM intentos_login WHERE ip = %s", (ip,))
-    conn.commit()
 
 # ---------------- RUN ----------------
 
