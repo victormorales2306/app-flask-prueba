@@ -166,6 +166,49 @@ def api_clientes():
     finally:
         conn.close()
 
+# ---------------- RUTA MRU ----------------
+
+@app.route("/api/mru_ruta")
+def api_mru_ruta():
+
+    if "usuario" not in session:
+        return jsonify({"error": "No autorizado"}), 401
+
+    mru = request.args.get("mru")
+
+    if not mru:
+        return jsonify([])
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT
+                serialnumber,
+                latitude,
+                longitude,
+                mru,
+                mr_time
+            FROM suscriptores_noviembre_2025
+            WHERE mru = %s
+              AND latitude IS NOT NULL
+              AND longitude IS NOT NULL
+            ORDER BY mr_time
+        """, (mru,))
+
+        datos = cur.fetchall()
+
+        for fila in datos:
+            if fila["mr_time"]:
+                fila["mr_time"] = fila["mr_time"].strftime("%H:%M:%S")
+
+        return jsonify(datos)
+
+    finally:
+        conn.close()
+
 # ---------------- REPORTES ----------------
 
 @app.route("/api/reportes", methods=["GET"])
@@ -400,18 +443,25 @@ def cargar_suscriptores():
             # 1️⃣ crear tabla temporal
             cur.execute("""
                 CREATE TEMP TABLE temp_suscriptores (
-                    serialnumber TEXT,
-                    latitude DOUBLE PRECISION,
-                    longitude DOUBLE PRECISION,
-                    mru TEXT
-                ) ON COMMIT DROP;
+    serialnumber TEXT,
+    latitude DOUBLE PRECISION,
+    longitude DOUBLE PRECISION,
+    mru TEXT,
+    mr_time TIME
+) ON COMMIT DROP;
             """)
 
             # 2️⃣ cargar datos masivamente
             with open(temp_path, 'r') as f:
                 cur.copy_expert("""
-                    COPY temp_suscriptores(serialnumber, latitude, longitude, mru)
-                    FROM STDIN WITH CSV HEADER
+                    COPY temp_suscriptores(
+    serialnumber,
+    latitude,
+    longitude,
+    mru,
+    mr_time
+)
+FROM STDIN WITH CSV HEADER
                 """, f)
 
             # 3️⃣ limpiar datos inválidos
@@ -424,9 +474,20 @@ def cargar_suscriptores():
             cur.execute("DELETE FROM suscriptores_noviembre_2025")
 
             cur.execute("""
-                INSERT INTO suscriptores_noviembre_2025 (serialnumber, latitude, longitude, mru)
-                SELECT serialnumber, latitude, longitude, mru
-                FROM temp_suscriptores;
+                INSERT INTO suscriptores_noviembre_2025 (
+    serialnumber,
+    latitude,
+    longitude,
+    mru,
+    mr_time
+)
+SELECT
+    serialnumber,
+    latitude,
+    longitude,
+    mru,
+    mr_time
+FROM temp_suscriptores;
             """)
 
             # ✅ confirmar todo

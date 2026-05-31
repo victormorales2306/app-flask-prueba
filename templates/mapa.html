@@ -103,8 +103,11 @@
 <div class="panel">
   <b>Buscar cliente por SERIALNUMBER</b>
   <input id="serial" type="text" placeholder="Ej: 12345678" />
-  <button onclick="buscar()">Buscar</button>
-  <button class="secondary" onclick="abrirReporte()">Reportar medidor</button>
+ <button onclick="buscar()">Buscar</button>
+
+<button onclick="verMRU()">Ver MRU</button>
+
+<button class="secondary" onclick="abrirReporte()">Reportar medidor</button>
 </div>
 
 <div id="map"></div>
@@ -139,6 +142,7 @@
   }).addTo(map);
 
   const markersLayer = L.layerGroup().addTo(map);
+  const rutaLayer = L.layerGroup().addTo(map);
 
   let userLat = null;
   let userLon = null;
@@ -206,6 +210,102 @@
       map.fitBounds(bounds, { padding: [40, 40] });
     }
   }
+//----------------------------------------------
+function dibujarRutaMRU(mru) {
+
+  rutaLayer.clearLayers();
+
+  fetch(`/api/mru_ruta?mru=${mru}`)
+    .then(r => r.json())
+    .then(datos => {
+
+      if (!datos || datos.length < 2) {
+        return;
+      }
+
+      const coordenadas = [];
+
+datos.forEach((p, indice) => {
+
+  const lat = parseFloat(p.latitude);
+  const lon = parseFloat(p.longitude);
+
+  if (!isNaN(lat) && !isNaN(lon)) {
+
+    coordenadas.push([lat, lon]);
+
+    L.circleMarker([lat, lon], {
+      radius: 4,
+      weight: 1,
+      fillOpacity: 0.8
+    })
+    .addTo(rutaLayer)
+    .bindPopup(`
+      Parada #${indice + 1}<br>
+      Serial: ${p.serialnumber}
+    `);
+
+  }
+
+});
+
+      if (coordenadas.length < 2) {
+        return;
+      }
+
+      // Línea de recorrido
+      L.polyline(coordenadas, {
+        color: 'blue',
+        weight: 4,
+        opacity: 0.7
+      }).addTo(rutaLayer);
+
+      // Inicio
+      const inicio = datos[0];
+
+      L.marker(
+        [inicio.latitude, inicio.longitude],
+        {
+          icon: new L.Icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-green.png',
+            shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+            iconSize: [25,41],
+            iconAnchor: [12,41],
+            popupAnchor: [1,-34]
+          })
+        }
+      )
+      .addTo(rutaLayer)
+      .bindPopup(`
+  🟢 Inicio MRU<br>
+  Parada #1<br>
+  Serial: ${inicio.serialnumber}
+`);
+
+      // Fin
+      const fin = datos[datos.length - 1];
+
+      L.marker(
+        [fin.latitude, fin.longitude],
+        {
+          icon: redIcon
+        }
+      )
+      .addTo(rutaLayer)
+      .bindPopup(`
+  🔴 Fin MRU<br>
+  Parada #${datos.length}<br>
+  Serial: ${fin.serialnumber}
+`);
+
+    })
+    .catch(err => {
+      console.error("Error cargando ruta MRU", err);
+    });
+
+}
+
+//----------------------------------------------
 
   function buscar() {
     const serial = document.getElementById("serial").value.trim();
@@ -222,8 +322,20 @@
         console.error(err);
         alert("Error al buscar cliente");
       });
+}
+//---------------------------------------------------------------
+  function verMRU() {
+
+  const mru = prompt("Ingrese la MRU que desea visualizar:");
+
+  if (!mru) {
+    return;
   }
 
+  dibujarRutaMRU(mru.trim());
+
+}
+//------------------------------------------------------------------------
   function abrirReporte() {
     document.getElementById("modalReporte").style.display = "block";
 
