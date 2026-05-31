@@ -197,7 +197,14 @@ function pintar(data, fotos) {
     let fotoHTML = "";
 
 if (r.foto) {
-  fotoHTML = `<br><img src="/static/${r.foto}" style="width:100%; max-width:200px; border-radius:8px;">`;
+  let src = r.foto;
+
+  // si es local, construir ruta
+  if (!src.startsWith("http")) {
+    src = "/static/" + src;
+  }
+
+  fotoHTML = `<br><img src="${src}" style="width:100%; max-width:200px; border-radius:8px;">`;
 }
 
 marker.bindPopup(`

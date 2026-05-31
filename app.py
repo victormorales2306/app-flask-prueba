@@ -7,12 +7,20 @@ from functools import wraps
 import csv
 import io
 import os
+import cloudinary
+import cloudinary.uploader
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
 from flask import send_file
 
 load_dotenv()
+
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key")
@@ -31,6 +39,17 @@ ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def upload_to_cloudinary(file):
+    try:
+        result = cloudinary.uploader.upload(
+            file,
+            folder="reportes_medidores"
+        )
+        return result.get("secure_url")
+    except Exception as e:
+        print("Error Cloudinary:", e)
+        return None
 
 # ---------------- DB ----------------
 
@@ -286,15 +305,23 @@ def api_reportes():
                 archivo = request.files["foto"]
 
                 if archivo and archivo.filename != "" and allowed_file(archivo.filename):
-                    nombre = secure_filename(archivo.filename)
-                    nombre_final = f"{int(datetime.now().timestamp())}_{nombre}"
 
-                    ruta_relativa = os.path.join("uploads", nombre_final)
-                    ruta_fisica = os.path.join("static", ruta_relativa)
+                    # 1️⃣ intentar Cloudinary
+                    url_cloud = upload_to_cloudinary(archivo)
 
-                    archivo.save(ruta_fisica)
+                    if url_cloud:
+                        foto_ruta = url_cloud  # ☁️ nube
+                    else:
+                        # 2️⃣ fallback local
+                        nombre = secure_filename(archivo.filename)
+                        nombre_final = f"{int(datetime.now().timestamp())}_{nombre}"
 
-                    foto_ruta = ruta_relativa.replace("\\", "/")
+                        ruta_relativa = os.path.join("uploads", nombre_final)
+                        ruta_fisica = os.path.join("static", ruta_relativa)
+
+                        archivo.save(ruta_fisica)
+
+                        foto_ruta = ruta_relativa.replace("\\", "/")
 
         cur.execute("""
             INSERT INTO reportes_medidores
@@ -322,7 +349,6 @@ def api_reportes():
 
     finally:
         conn.close()
-
 # ---------------- EXPORT ----------------
 @app.route("/admin/exportar_reportes")
 @admin_required
@@ -368,11 +394,20 @@ def exportar_reportes():
                 fila = ws.max_row
                 celda = ws[f"I{fila}"]
 
-                url = f'{base_url}/static/{r["foto"]}'
+                foto = r["foto"]
 
-                celda.value = "ver foto"
-                celda.hyperlink = url
-                celda.style = "Hyperlink"
+                if foto:
+                    if foto.startswith("http"):
+                        url = foto  # Cloudinary
+                    else:
+                        url = f'{base_url}/static/{foto}'  # local
+                else:
+                    url = None
+
+                if url:
+                    celda.value = "ver foto"
+                    celda.hyperlink = url
+                    celda.style = "Hyperlink"
 
         file_path = "reportes.xlsx"
         wb.save(file_path)
