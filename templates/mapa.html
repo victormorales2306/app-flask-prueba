@@ -198,9 +198,28 @@
 `;
 
       if (userLat && userLon && esBusqueda) {
-        const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${lat},${lon}`;
-        popupHtml += `<br><a class="go-btn" target="_blank" href="${gmaps}">🧭 Cómo llegar</a>`;
-      }
+
+  const gmaps = `https://www.google.com/maps/dir/?api=1&origin=${userLat},${userLon}&destination=${lat},${lon}`;
+
+  // enlace para compartir ubicación exacta del medidor
+  const compartir = `https://www.google.com/maps?q=${lat},${lon}`;
+
+  popupHtml += `
+    <br>
+    <a class="go-btn" target="_blank" href="${gmaps}">
+      🧭 Cómo llegar
+    </a>
+
+    <br><br>
+
+    <a class="go-btn"
+       style="background:#43a047"
+       target="_blank"
+       href="${compartir}">
+       📤 Compartir ubicación
+    </a>
+  `;
+}
 
       marker.bindPopup(popupHtml);
       bounds.push([lat, lon]);
