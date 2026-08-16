@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Resultados de Auditorías</title>
+    <link rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f6f8;
+            color: #333;
+        }
+
+        .contenedor {
+            max-width: 1400px;
+            margin: auto;
+            padding: 25px;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitulo {
+            color: #666;
+            margin-top: 0;
+        }
+
+        .volver {
+            display: inline-block;
+            margin-bottom: 20px;
+            text-decoration: none;
+            color: #1565c0;
+        }
+
+        /* KPI */
+
+        .kpis {
+            display: grid;
+            grid-template-columns:
+                repeat(auto-fit, minmax(180px, 1fr));
+
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .kpi {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.10);
+        }
+
+        .kpi-titulo {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .kpi-valor {
+            font-size: 30px;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+
+        /* TABLA */
+
+        .tabla-contenedor {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.10);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1100px;
+        }
+
+        th {
+            background: #1565c0;
+            color: white;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .completada {
+            color: #2e7d32;
+            font-weight: bold;
+        }
+
+        .pendiente {
+            color: #ef6c00;
+            font-weight: bold;
+        }
+
+        .encontrado {
+            color: #2e7d32;
+        }
+
+        .no-encontrado {
+            color: #c62828;
+        }
+
+        .sin-dato {
+            color: #999;
+        }
+
+        .foto-btn {
+            display: inline-block;
+            padding: 6px 10px;
+            background: #1565c0;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+
+        .foto-btn:hover {
+            background: #0d47a1;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="contenedor">
+
+    <a class="volver"
+       href="{{ url_for('dashboard') }}">
+        ← Volver al dashboard
+    </a>
+
+    <h1>📊 Resultados de Auditorías</h1>
+
+    <p class="subtitulo">
+        Seguimiento de las revisiones realizadas en campo
+    </p>
+
+
+    <!-- ========================= -->
+    <!-- KPI -->
+    <!-- ========================= -->
+
+    <div class="kpis">
+
+        <div class="kpi">
+
+            <div class="kpi-titulo">
+                Total de revisiones
+            </div>
+
+            <div class="kpi-valor">
+                {{ auditorias|length }}
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+            <div class="kpi-titulo">
+                Completadas
+            </div>
+
+            <div class="kpi-valor">
+
+                {{
+                    auditorias
+                    |selectattr("estado", "equalto", "Completada")
+                    |list
+                    |length
+                }}
+
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+            <div class="kpi-titulo">
+                Pendientes
+            </div>
+
+            <div class="kpi-valor">
+
+                {{
+                    auditorias
+                    |selectattr("estado", "equalto", "Pendiente")
+                    |list
+                    |length
+                }}
+
+            </div>
+
+        </div>
+
+
+        <div class="kpi">
+
+<div class="kpi-titulo">
+    Medidor encontrado en campo
+</div>
+
+<div class="kpi-valor">
+
+    {{
+        auditorias
+        |selectattr("estado", "equalto", "Completada")
+        |selectattr("ubicacion_encontrada", "equalto", true)
+        |list
+        |length
+    }}
+
+</div>
+        </div>
+
+
+        <div class="kpi">
+
+<div class="kpi-titulo">
+    Medidor no encontrado en campo
+</div>
+
+<div class="kpi-valor">
+
+    {{
+        auditorias
+        |selectattr("estado", "equalto", "Completada")
+        |selectattr("ubicacion_encontrada", "equalto", false)
+        |list
+        |length
+    }}
+
+</div>
+        </div>
+
+    </div>
+
+<!-- ========================================= -->
+<!-- RESUMEN POR TÉCNICO -->
+<!-- ========================================= -->
+
+<div class="tabla-contenedor" style="margin-bottom:25px;">
+
+    <h2 style="margin-top:0;">
+        👷 Resumen por técnico
+    </h2>
+
+    <table>
+
+        <thead>
+
+            <tr>
+
+                <th>Técnico</th>
+
+                <th>Asignadas</th>
+
+                <th>Completadas</th>
+
+                <th>Pendientes</th>
+
+                <th>Encontrados</th>
+
+                <th>No encontrados</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+        {% for t in resumen_tecnicos %}
+
+            <tr>
+
+                <td>
+                    <strong>{{ t.usuario }}</strong>
+                </td>
+
+                <td>
+                    {{ t.asignadas }}
+                </td>
+
+                <td style="color:#2e7d32;font-weight:bold;">
+                    {{ t.completadas }}
+                </td>
+
+                <td style="color:#ef6c00;font-weight:bold;">
+                    {{ t.pendientes }}
+                </td>
+
+                <td style="color:#2e7d32;">
+                    {{ t.encontrados }}
+                </td>
+
+                <td style="color:#c62828;">
+                    {{ t.no_encontrados }}
+                </td>
+
+            </tr>
+
+        {% else %}
+
+            <tr>
+
+                <td colspan="6"
+                    style="text-align:center;padding:20px;">
+
+                    No hay técnicos con revisiones registradas.
+
+                </td>
+
+            </tr>
+
+        {% endfor %}
+
+        </tbody>
+
+    </table>
+
+</div>
+
+<!-- ========================================= -->
+<!-- MAPA DE AUDITORÍAS -->
+<!-- ========================================= -->
+
+<div class="tabla-contenedor" style="margin-bottom:25px;">
+
+    <h2 style="margin-top:0;">
+        🗺️ Ubicación de auditorías
+    </h2>
+
+    <p style="color:#666;">
+        Ubicación de las revisiones realizadas y pendientes.
+    </p>
+
+    <div id="mapaAuditorias"
+         style="
+            width:100%;
+            height:500px;
+            border-radius:10px;
+            overflow:hidden;
+         ">
+    </div>
+
+<script id="datosAuditorias" type="application/json">
+    {{ auditorias | tojson }}
+</script>
+
+</div>
+
+<!-- ========================= -->
+<!-- TABLA -->
+<!-- ========================= -->
+    <div class="tabla-contenedor">
+
+        <table>
+
+            <thead>
+
+                <tr>
+
+                    <th>Orden</th>
+
+                    <th>Instalación</th>
+
+                    <th>Serial</th>
+
+                    <th>Técnico</th>
+
+                    <th>Estado</th>
+
+                    <th>Resultado</th>
+
+                    <th>Inicio</th>
+
+                    <th>Finalización</th>
+
+                    <th>Comentario</th>
+
+                    <th>Evidencia</th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+            {% for a in auditorias %}
+
+                <tr>
+
+                    <td>
+                        {{ a.id }}
+                    </td>
+
+                    <td>
+                        {{ a.instalacion }}
+                    </td>
+
+                    <td>
+                        {{ a.serialnumber }}
+                    </td>
+
+                    <td>
+                        {{ a.usuario }}
+                    </td>
+
+                    <td>
+
+                        {% if a.estado == "Completada" %}
+
+                            <span class="completada">
+                                {{ a.estado }}
+                            </span>
+
+                        {% else %}
+
+                            <span class="pendiente">
+                                {{ a.estado }}
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+{% if a.estado == "Completada" and a.ubicacion_encontrada == true %}
+
+    <span class="encontrado">
+        ✓ Encontrado en campo
+    </span>
+
+{% elif a.estado == "Completada" and a.ubicacion_encontrada == false %}
+
+    <span class="no-encontrado">
+        ✗ No encontrado en campo
+    </span>
+
+{% else %}
+
+    <span class="sin-dato">
+        ⏳ Pendiente de revisión
+    </span>
+
+{% endif %}
+                    </td>
+
+
+                    <td>
+                        {{ a.fecha_inicio or "—" }}
+                    </td>
+
+
+                    <td>
+                        {{ a.fecha_finalizacion or "—" }}
+                    </td>
+
+
+                    <td>
+
+                        {% if a.comentario %}
+
+                            {{ a.comentario }}
+
+                        {% else %}
+
+                            <span class="sin-dato">
+                                Sin comentario
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+
+                    <td>
+
+                        {% if a.foto %}
+
+                            <a class="foto-btn"
+                               href="{{ a.foto }}"
+                               target="_blank">
+                                📷 Ver foto
+                            </a>
+
+                        {% else %}
+
+                            <span class="sin-dato">
+                                Sin foto
+                            </span>
+
+                        {% endif %}
+
+                    </td>
+
+                </tr>
+
+            {% else %}
+
+                <tr>
+
+                    <td colspan="10"
+                        style="text-align:center;padding:30px;">
+
+                        No hay auditorías registradas.
+
+                    </td>
+
+                </tr>
+
+            {% endfor %}
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<script>
+
+    // =========================================
+    // DATOS DE AUDITORÍAS
+    // =========================================
+
+    const datosAuditorias = JSON.parse(
+        document.getElementById("datosAuditorias").textContent
+    );
+
+
+    // =========================================
+    // MAPA DE RESULTADOS DE AUDITORÍAS
+    // =========================================
+
+    const mapaAuditorias = L.map('mapaAuditorias');
+
+    L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+            maxZoom: 19,
+            attribution: '&copy; OpenStreetMap'
+        }
+    ).addTo(mapaAuditorias);
+
+
+    const puntosAuditorias = [];
+
+
+    datosAuditorias.forEach(a => {
+
+        const lat = parseFloat(a.latitud);
+        const lon = parseFloat(a.longitud);
+
+        if (isNaN(lat) || isNaN(lon)) {
+            return;
+        }
+
+
+        puntosAuditorias.push([lat, lon]);
+
+
+        // =========================================
+        // COLOR SEGÚN RESULTADO
+        // =========================================
+
+        let color = "#757575";
+
+        if (a.ubicacion_encontrada === true) {
+
+            color = "#2e7d32";
+
+        } else if (a.ubicacion_encontrada === false) {
+
+            color = "#c62828";
+
+        }
+
+
+        // =========================================
+        // MARCADOR
+        // =========================================
+
+        const marcador = L.circleMarker(
+            [lat, lon],
+            {
+                radius: 8,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.85,
+                weight: 2
+            }
+        ).addTo(mapaAuditorias);
+
+
+        // =========================================
+        // RESULTADO
+        // =========================================
+
+        let resultado = "Sin resultado";
+
+        if (a.ubicacion_encontrada === true) {
+
+            resultado = "✓ Medidor encontrado";
+
+        } else if (a.ubicacion_encontrada === false) {
+
+            resultado = "✗ Medidor no encontrado";
+
+        }
+
+
+        // =========================================
+        // FOTO
+        // =========================================
+
+        let foto = "";
+
+        if (a.foto) {
+
+            foto = `
+                <br><br>
+                <a href="${a.foto}"
+                   target="_blank">
+                    📷 Ver evidencia
+                </a>
+            `;
+
+        }
+
+
+        // =========================================
+        // POPUP
+        // =========================================
+
+        marcador.bindPopup(`
+
+            <b>🔎 Auditoría #${a.id}</b>
+
+            <br><br>
+
+            <b>Instalación:</b>
+            ${a.instalacion || "—"}
+
+            <br>
+
+            <b>Serial:</b>
+            ${a.serialnumber || "—"}
+
+            <br>
+
+            <b>Técnico:</b>
+            ${a.usuario || "—"}
+
+            <br>
+
+            <b>Estado:</b>
+            ${a.estado || "—"}
+
+            <br>
+
+            <b>Resultado:</b>
+            ${resultado}
+
+            <br>
+
+            <b>Comentario:</b>
+            ${a.comentario || "Sin comentario"}
+
+            ${foto}
+
+        `);
+
+    });
+
+
+    // =========================================
+    // CENTRAR MAPA
+    // =========================================
+
+    if (puntosAuditorias.length > 0) {
+
+        mapaAuditorias.fitBounds(
+            puntosAuditorias,
+            {
+                padding: [30, 30]
+            }
+        );
+
+    } else {
+
+        mapaAuditorias.setView(
+            [13.7, -89.2],
+            10
+        );
+
+    }
+
+</script>
+</body>
+
+</html>

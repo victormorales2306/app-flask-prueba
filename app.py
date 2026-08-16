@@ -12,6 +12,7 @@ import cloudinary.uploader
 from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
 from openpyxl import Workbook
+from openpyxl import load_workbook
 from flask import send_file
 
 load_dotenv()
@@ -73,6 +74,20 @@ def admin_required(f):
         if session.get("rol") != "admin":
             abort(403)
         return f(*args, **kwargs)
+    return decorated_function
+
+def usuario_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+
+        if "usuario" not in session:
+            return redirect(url_for("login"))
+
+        if session.get("rol") not in ["usuario", "admin"]:
+            abort(403)
+
+        return f(*args, **kwargs)
+
     return decorated_function
 
 # ---------------- INDEX ----------------
@@ -157,6 +172,38 @@ def ver_reportes():
         return redirect(url_for("login"))
     return render_template("ver_reportes.html")
 
+# ---------------- REVISIONES ----------------
+
+@app.route("/admin/revisiones")
+@admin_required
+def revisiones():
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT usuario,nombre
+            FROM usuarios_sistema
+            WHERE estado='activo'
+            ORDER BY nombre
+        """)
+
+        usuarios = cur.fetchall()
+
+    finally:
+        conn.close()
+
+    return render_template(
+    "revisiones.html",
+    usuarios=usuarios,
+    encontrados=[],
+    no_encontrados=[],
+    total=0
+)
+
+
 # ---------------- CLIENTES ----------------
 
 @app.route("/api/clientes")
@@ -226,6 +273,290 @@ def api_mru_ruta():
         return jsonify(datos)
 
     finally:
+        conn.close()
+# ---------------- REVISIONES USUARIO ----------------
+
+@app.route("/api/mis_revisiones")
+@usuario_required
+def api_mis_revisiones():
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT COUNT(*) AS cantidad
+            FROM ordenes_trabajo
+            WHERE usuario=%s
+            AND tipo='Revision'
+            AND estado='Pendiente'
+        """,
+        (
+            session["usuario"],
+        ))
+
+        resultado = cur.fetchone()
+
+        return {
+            "cantidad": resultado["cantidad"]
+        }
+
+    except Exception as e:
+
+        print("ERROR MIS REVISIONES:", e)
+
+        return {
+            "cantidad": 0
+        }
+
+    finally:
+
+        conn.close()
+
+# ---------------- RUTA REVISIONES ASIGNADAS ----------------
+
+@app.route("/api/ruta_revisiones")
+@usuario_required
+def api_ruta_revisiones():
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+           SELECT
+                id,
+                instalacion,
+                serialnumber,
+                comentario,
+                latitud,
+                longitud,
+                estado
+                FROM ordenes_trabajo
+            WHERE usuario=%s
+            AND tipo='Revision'
+            AND estado='Pendiente'
+            AND latitud IS NOT NULL
+            AND longitud IS NOT NULL
+            ORDER BY id
+        """,
+        (
+            session["usuario"],
+        ))
+
+        datos = cur.fetchall()
+
+        return jsonify(datos)
+
+    except Exception as e:
+
+        print("ERROR RUTA REVISIONES:", e)
+
+        return jsonify([])
+
+    finally:
+
+        conn.close()
+
+# ---------------------------------------------------------
+# GUARDAR EVIDENCIA DE ORDEN DE TRABAJO
+# ---------------------------------------------------------
+
+@app.route("/api/ordenes/<int:orden_id>/evidencia", methods=["POST"])
+@usuario_required
+def guardar_evidencia_orden(orden_id):
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        # ---------------------------------------------
+        # VERIFICAR QUE LA ORDEN PERTENECE AL USUARIO
+        # ---------------------------------------------
+
+        cur.execute("""
+            SELECT
+                id,
+                estado,
+                usuario
+            FROM ordenes_trabajo
+            WHERE id = %s
+              AND usuario = %s
+              AND tipo = 'Revision'
+        """, (
+            orden_id,
+            session["usuario"]
+        ))
+
+        orden = cur.fetchone()
+
+        if not orden:
+            return jsonify({
+                "error": "Orden no encontrada"
+            }), 404
+
+
+        # ---------------------------------------------
+        # VERIFICAR QUE SIGUE PENDIENTE
+        # ---------------------------------------------
+
+        if orden["estado"] != "Pendiente":
+
+            return jsonify({
+                "error": "La orden ya fue procesada"
+            }), 400
+
+
+        # ---------------------------------------------
+        # DATOS RECIBIDOS
+        # ---------------------------------------------
+
+        encontrado = request.form.get("encontrado")
+
+        comentario = request.form.get(
+            "comentario",
+            ""
+        ).strip()
+
+        latitud = request.form.get("latitud")
+        longitud = request.form.get("longitud")
+         
+               # ---------------------------------------------
+        # RECIBIR FOTO
+        # ---------------------------------------------
+
+        foto_url = None
+
+        if "foto" in request.files:
+
+            archivo = request.files["foto"]
+
+            if archivo and archivo.filename != "":
+
+                if not allowed_file(archivo.filename):
+
+                    return jsonify({
+                        "error": "Formato de imagen no permitido"
+                    }), 400
+
+                foto_url = upload_to_cloudinary(archivo)
+
+                if not foto_url:
+
+                    return jsonify({
+                        "error": "No se pudo subir la fotografía"
+                    }), 500
+         
+        # ---------------------------------------------
+        # VALIDAR RESULTADO
+        # ---------------------------------------------
+
+        if encontrado == "true":
+
+            encontrado_bool = True
+
+        elif encontrado == "false":
+
+            encontrado_bool = False
+
+        else:
+
+            return jsonify({
+                "error": "Debe indicar si el medidor fue encontrado"
+            }), 400
+
+        # ---------------------------------------------
+        # GUARDAR EVIDENCIA
+        # ---------------------------------------------
+
+        cur.execute("""
+            INSERT INTO ordenes_trabajo_evidencias
+            (
+                orden_id,
+                comentario,
+                foto,
+                usuario
+            )
+            VALUES
+            (
+                %s,
+                %s,
+                %s,
+                %s
+            )
+        """, (
+            orden_id,
+            comentario,
+            foto_url,
+            session["usuario"]
+        ))
+
+
+        # ---------------------------------------------
+        # ACTUALIZAR ORDEN
+        # ---------------------------------------------
+
+        cur.execute("""
+            UPDATE ordenes_trabajo
+            SET
+                ubicacion_encontrada = %s,
+                latitud = %s,
+                longitud = %s,
+                fecha_inicio = COALESCE(fecha_inicio, NOW()),
+                fecha_finalizacion = NOW(),
+                estado = 'Completada'
+            WHERE id = %s
+        """, (
+            encontrado_bool,
+            latitud,
+            longitud,
+            orden_id
+        ))
+
+
+        # ---------------------------------------------
+        # CONFIRMAR TRANSACCIÓN
+        # ---------------------------------------------
+
+        conn.commit()
+
+
+        print("================================")
+        print("EVIDENCIA GUARDADA")
+        print("Orden:", orden_id)
+        print("Usuario:", session["usuario"])
+        print("Encontrado:", encontrado_bool)
+        print("Comentario:", comentario)
+        print("Latitud:", latitud)
+        print("Longitud:", longitud)
+        print("Foto:", foto_url)
+        print("Estado: Completada")
+        print("================================")
+
+
+        return jsonify({
+            "status": "ok",
+            "mensaje": "Evidencia guardada correctamente",
+            "orden_id": orden_id
+        })
+
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print("ERROR EVIDENCIA:", e)
+
+        return jsonify({
+            "error": "Error al guardar evidencia"
+        }), 500
+
+
+    finally:
+
         conn.close()
 
 # ---------------- REPORTES ----------------
@@ -559,6 +890,157 @@ def admin_usuarios():
     finally:
         conn.close()
 
+
+#------------------- resultados de auditoria --------------
+
+@app.route("/admin/resultados_auditorias")
+@admin_required
+def resultados_auditorias():
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT
+                ot.id,
+                ot.instalacion,
+                ot.serialnumber,
+                ot.usuario,
+                ot.estado,
+                ot.ubicacion_encontrada,
+                ot.latitud,
+                ot.longitud,
+                ot.fecha_inicio,
+                ot.fecha_finalizacion,
+                ote.comentario,
+                ote.foto,
+                ote.fecha AS fecha_evidencia
+            FROM ordenes_trabajo ot
+            LEFT JOIN LATERAL (
+                SELECT
+                    comentario,
+                    foto,
+                    fecha
+                FROM ordenes_trabajo_evidencias
+                WHERE orden_id = ot.id
+                ORDER BY fecha DESC
+                LIMIT 1
+            ) ote ON TRUE
+            WHERE ot.tipo = 'Revision'
+            ORDER BY ot.fecha_asignacion DESC, ot.id DESC
+        """)
+
+        auditorias = cur.fetchall()
+
+
+        # =============================================
+        # RESUMEN DE AUDITORÍAS POR TÉCNICO
+        # =============================================
+
+        cur.execute("""
+            SELECT
+                usuario,
+
+                COUNT(*) AS asignadas,
+
+                COUNT(*) FILTER (
+                    WHERE estado = 'Completada'
+                ) AS completadas,
+
+                COUNT(*) FILTER (
+                    WHERE estado = 'Pendiente'
+                ) AS pendientes,
+
+                COUNT(*) FILTER (
+                    WHERE estado = 'Completada'
+                    AND ubicacion_encontrada = TRUE
+                    ) AS encontrados,
+
+                COUNT(*) FILTER (
+                    WHERE estado = 'Completada'
+                    AND ubicacion_encontrada = FALSE
+                    ) AS no_encontrados
+            FROM ordenes_trabajo
+
+            WHERE tipo = 'Revision'
+
+            GROUP BY usuario
+
+            ORDER BY usuario
+        """)
+
+        resumen_tecnicos = cur.fetchall()
+
+
+        return render_template(
+            "resultados_auditorias.html",
+            auditorias=auditorias,
+            resumen_tecnicos=resumen_tecnicos
+        )
+    
+    finally:
+
+        conn.close()
+#---------- --------------------------------------------------------
+
+@app.route("/admin/api/ruta_auditorias/<usuario>")
+@admin_required
+def ruta_auditorias(usuario):
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT
+                ot.id,
+                ot.instalacion,
+                ot.serialnumber,
+                ot.usuario,
+                ot.estado,
+                ot.ubicacion_encontrada,
+                ot.latitud,
+                ot.longitud,
+                ot.fecha_inicio,
+                ot.fecha_finalizacion,
+                ote.comentario,
+                ote.foto
+            FROM ordenes_trabajo ot
+
+            LEFT JOIN LATERAL (
+                SELECT
+                    comentario,
+                    foto
+                FROM ordenes_trabajo_evidencias
+                WHERE orden_id = ot.id
+                ORDER BY fecha DESC
+                LIMIT 1
+            ) ote ON TRUE
+
+            WHERE ot.tipo = 'Revision'
+              AND ot.usuario = %s
+              AND ot.latitud IS NOT NULL
+              AND ot.longitud IS NOT NULL
+
+            ORDER BY
+                COALESCE(
+                    ot.fecha_inicio,
+                    ot.fecha_finalizacion,
+                    ot.fecha_asignacion
+                )
+        """, (usuario,))
+
+        revisiones = cur.fetchall()
+
+        return jsonify(revisiones)
+
+    finally:
+
+        conn.close()
+
 #------------------ no eliminar del codigo  ----------------
 
 @app.route("/admin/usuario/nuevo", methods=["GET", "POST"])
@@ -671,6 +1153,321 @@ def cambiar_password(usuario):
 
     return render_template('cambiar_password.html', usuario=usuario)
 
+# ---------------- CARGAR REVISIONES ----------------
+
+@app.route("/admin/cargar_revisiones", methods=["POST"])
+@admin_required
+def cargar_revisiones():
+
+    archivo = request.files.get("archivo")
+    usuario = request.form.get("usuario")
+    id_lote = f"REV-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
+
+    if not archivo:
+        flash("Debe seleccionar un archivo Excel.")
+        return redirect(url_for("revisiones"))
+
+    try:
+
+        wb = load_workbook(archivo, data_only=True)
+        ws = wb.active
+
+        encabezados = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
+
+        columnas_requeridas = [
+            "instalacion",
+            "serialnumber",
+            "fecha",
+            "comentario"
+        ]
+
+        for col in columnas_requeridas:
+
+            if col not in encabezados:
+
+                flash(f"No existe la columna: {col}")
+                return redirect(url_for("revisiones"))
+
+        idx_inst = encabezados.index("instalacion")
+        idx_serial = encabezados.index("serialnumber")
+        idx_fecha = encabezados.index("fecha")
+        idx_com = encabezados.index("comentario")
+
+        conn = get_db()
+        cur = conn.cursor()
+
+        encontrados = []
+        no_encontrados = []
+
+        for fila in ws.iter_rows(min_row=2, values_only=True):
+
+            instalacion = fila[idx_inst]
+            serial = fila[idx_serial]
+            fecha = fila[idx_fecha]
+            comentario = fila[idx_com]
+
+            if serial is None:
+                continue
+
+            cur.execute("""
+                SELECT
+                    latitude,
+                    longitude
+                FROM suscriptores_noviembre_2025
+                WHERE serialnumber=%s
+            """,(str(serial),))
+
+            dato = cur.fetchone()
+
+            if dato:
+
+                encontrados.append({
+
+                    "instalacion": instalacion,
+                    "serialnumber": serial,
+                    "fecha": fecha,
+                    "comentario": comentario,
+                    "latitud": dato["latitude"],
+                    "longitud": dato["longitude"]
+
+                })
+
+
+                cur.execute("""
+                    INSERT INTO revisiones_temporal
+                    (
+                        id_lote,
+                        usuario,
+                        instalacion,
+                        serialnumber,
+                        fecha,
+                        comentario,
+                        latitud,
+                        longitud,
+                        encontrado
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                """,
+                (
+                    id_lote,
+                    usuario,
+                    instalacion,
+                    str(serial),
+                    fecha,
+                    comentario,
+                    dato["latitude"],
+                    dato["longitude"],
+                    True
+                ))
+
+            else:
+
+                no_encontrados.append({
+
+                    "instalacion": instalacion,
+                    "serialnumber": serial,
+                    "fecha": fecha,
+                    "comentario": comentario
+
+                })
+                cur.execute("""
+                    INSERT INTO revisiones_temporal
+                    (
+                        id_lote,
+                        usuario,
+                        instalacion,
+                        serialnumber,
+                        fecha,
+                        comentario,
+                        encontrado
+                    )
+                    VALUES (%s,%s,%s,%s,%s,%s,%s)
+                """,
+                (
+                    id_lote,
+                    usuario,
+                    instalacion,
+                    str(serial),
+                    fecha,
+                    comentario,
+                    False
+                ))
+
+        conn.commit()
+        conn.close()
+
+        # volver a consultar usuarios activos
+        conn2 = get_db()
+        cur2 = conn2.cursor()
+
+        cur2.execute("""
+            SELECT usuario, nombre
+            FROM usuarios_sistema
+            WHERE estado='activo'
+            ORDER BY nombre
+        """)
+
+        usuarios = cur2.fetchall()
+
+        conn2.close()
+
+        return render_template(
+
+            "revisiones.html",
+
+            usuarios=usuarios,
+
+            encontrados=encontrados,
+
+            no_encontrados=no_encontrados,
+
+            total=len(encontrados)+len(no_encontrados),
+
+            usuario=usuario,
+            id_lote=id_lote
+
+        )
+
+    except Exception as e:
+
+        print(e)
+
+        flash("Error leyendo el archivo Excel")
+
+        return redirect(url_for("revisiones"))
+
+# ---------------- CONFIRMAR REVISION ----------------
+# ---------------- CONFIRMAR REVISION ----------------
+
+@app.route("/admin/confirmar_revision/<id_lote>", methods=["POST"])
+@admin_required
+def confirmar_revision(id_lote):
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        # Obtener todos los registros del lote
+        cur.execute("""
+            SELECT
+                id,
+                instalacion,
+                serialnumber,
+                fecha,
+                usuario,
+                comentario,
+                latitud,
+                longitud,
+                encontrado
+            FROM revisiones_temporal
+            WHERE id_lote=%s
+            ORDER BY id
+        """, (id_lote,))
+
+        registros = cur.fetchall()
+
+        # Actualizar coordenadas de los no encontrados
+        # Actualizar coordenadas de los no encontrados
+                # Actualizar coordenadas de los no encontrados
+
+        indice_no_encontrado = 1
+
+        for r in registros:
+
+            if not r["encontrado"]:
+
+                lat = request.form.get(f"latitud_{indice_no_encontrado}")
+                lon = request.form.get(f"longitud_{indice_no_encontrado}")
+
+                if lat and lon:
+
+                    cur.execute("""
+                        UPDATE revisiones_temporal
+                        SET
+                            latitud=%s,
+                            longitud=%s,
+                            encontrado=TRUE
+                        WHERE id=%s
+                    """,
+                    (
+                        lat,
+                        lon,
+                        r["id"]
+                    ))
+
+                    r["latitud"] = lat
+                    r["longitud"] = lon
+                    r["encontrado"] = True
+
+                indice_no_encontrado += 1
+
+
+        # Crear órdenes
+
+        for r in registros:
+
+            if not r["latitud"] or not r["longitud"]:
+                continue
+
+            cur.execute("""
+                INSERT INTO ordenes_trabajo
+                (
+                    instalacion,
+                    serialnumber,
+                    fecha,
+                    usuario,
+                    tipo,
+                    comentario,
+                    latitud,
+                    longitud,
+                    estado,
+                    creado_por,
+                    ubicacion_encontrada,
+                    fecha_asignacion
+                )
+                VALUES
+                (
+                    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW()
+                )
+            """,
+            (
+                r["instalacion"],
+                r["serialnumber"],
+                r["fecha"],
+                r["usuario"],
+                "Revision",
+                r["comentario"],
+                r["latitud"],
+                r["longitud"],
+                "Pendiente",
+                session["usuario"],
+                r["encontrado"]
+            ))
+
+                # Limpiar tabla temporal después de crear las órdenes
+
+        cur.execute("""
+            DELETE FROM revisiones_temporal
+            WHERE id_lote=%s
+        """, (id_lote,))
+
+
+        conn.commit()
+
+        flash("Carga confirmada correctamente")
+
+    except Exception as e:
+
+        conn.rollback()
+        print("ERROR CONFIRMAR:", e)
+        flash("Error al confirmar carga")
+
+    finally:
+
+        conn.close()
+
+    return redirect(url_for("revisiones"))
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":

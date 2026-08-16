@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Administrar Revisiones</title>
+
+    <style>
+
+        body{
+            font-family: Arial;
+            margin:40px;
+            background:#f4f4f4;
+        }
+
+        .contenedor{
+
+            background:white;
+            max-width:700px;
+            margin:auto;
+            padding:25px;
+            border-radius:8px;
+            box-shadow:0 0 10px rgba(0,0,0,.15);
+
+        }
+
+        h2{
+
+            margin-top:0;
+
+        }
+
+        label{
+
+            font-weight:bold;
+
+        }
+
+        input,select{
+
+            width:100%;
+            padding:10px;
+            margin-top:5px;
+            margin-bottom:20px;
+
+        }
+
+        button{
+
+            background:#0066cc;
+            color:white;
+            border:none;
+            padding:12px 20px;
+            cursor:pointer;
+            border-radius:5px;
+
+        }
+
+        button:hover{
+
+            background:#004999;
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<h2>Administración de Revisiones</h2>
+
+<form
+method="POST"
+action="/admin/cargar_revisiones"
+enctype="multipart/form-data">
+
+<label>Usuario asignado</label>
+
+<select name="usuario" required>
+
+{% for u in usuarios %}
+
+<option value="{{u.usuario}}">
+{{u.nombre}}
+</option>
+
+{% endfor %}
+
+</select>
+
+<label>Archivo Excel</label>
+
+<input
+type="file"
+name="archivo"
+accept=".xlsx"
+required>
+
+<button type="submit">
+
+Cargar Revisiones
+
+</button>
+
+</form>
+
+<hr>
+
+<h3>Resultado de la validación</h3>
+
+<p><b>Total registros:</b> {{ total }}</p>
+
+<p><b>Encontrados:</b> {{ encontrados|length }}</p>
+
+<p><b>No encontrados:</b> {{ no_encontrados|length }}</p>
+
+{% if no_encontrados|length > 0 %}
+
+<h3>Seriales no encontrados</h3>
+
+<form 
+method="POST"
+action="{{ url_for('confirmar_revision', id_lote=id_lote) }}">
+
+<table border="1" cellpadding="5">
+
+<tr>
+
+<th>Instalación</th>
+
+<th>Serial</th>
+
+<th>Fecha</th>
+
+<th>Comentario</th>
+
+<th>Latitud</th>
+
+<th>Longitud</th>
+
+</tr>
+
+
+{% for r in no_encontrados %}
+
+<tr>
+
+<td>{{ r.instalacion }}</td>
+
+<td>{{ r.serialnumber }}</td>
+
+<td>{{ r.fecha }}</td>
+
+<td>{{ r.comentario }}</td>
+
+
+<td>
+
+<input
+type="text"
+name="latitud_{{ loop.index }}">
+
+</td>
+
+
+<td>
+
+<input
+type="text"
+name="longitud_{{ loop.index }}">
+
+</td>
+
+</tr>
+
+{% endfor %}
+
+
+</table>
+
+
+<br>
+
+
+<button type="submit">
+
+Confirmar carga
+
+</button>
+
+
+</form>
+
+
+{% endif %}
+
+</div>
+
+</body>
+
+</html>
