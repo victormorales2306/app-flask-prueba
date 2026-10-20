@@ -116,7 +116,7 @@ Cargar Revisiones
 
 <p><b>No encontrados:</b> {{ no_encontrados|length }}</p>
 
-{% if no_encontrados|length > 0 %}
+{% if encontrados|length > 0 or no_encontrados|length > 0 %}
 
 <h3>Seriales no encontrados</h3>
 
