@@ -187,6 +187,7 @@ def revisiones():
             SELECT usuario,nombre
             FROM usuarios_sistema
             WHERE estado='activo'
+             AND rol <> 'admin'
             ORDER BY nombre
         """)
 
