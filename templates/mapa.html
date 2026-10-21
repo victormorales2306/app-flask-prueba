@@ -113,6 +113,12 @@
   📍 Ver Revisiones
 </button>
 
+<button id="btnOptimizarRuta"
+        onclick="optimizarRutaRevisiones()"
+        style="display:none; background:#1565c0;">
+  🧭 Optimizar ruta
+</button>
+
 <button class="secondary" onclick="abrirReporte()">Reportar medidor</button>
 </div>
 
@@ -508,139 +514,182 @@ function dibujarRutaMRU(mru) {
 //------------------------------------------------------------------------
 // ---------------- RUTA REVISIONES ASIGNADAS ----------------
 
+// Datos de revisiones que se muestran en el mapa.
+let revisionesRuta = [];
+let rutaOptimizadaActiva = false;
+let seleccionandoOrigenRuta = false;
+let origenManualRuta = null;
+let lineaRutaRevisiones = null;
+
 function verRevisiones(){
 
     rutaLayer.clearLayers();
+    revisionesRuta = [];
+    rutaOptimizadaActiva = false;
+    origenManualRuta = null;
+
+    const botonOptimizar = document.getElementById("btnOptimizarRuta");
+    if (botonOptimizar) botonOptimizar.style.display = "none";
 
     fetch("/api/ruta_revisiones")
-    .then(r => r.json())
+    .then(r => {
+        if (!r.ok) throw new Error("No se pudieron cargar las revisiones.");
+        return r.json();
+    })
     .then(datos => {
 
-
         if(!datos || datos.length === 0){
-
             alert("No tiene revisiones pendientes");
             return;
-
         }
 
-
-        const coordenadas = [];
-
-
-        datos.forEach((p,index)=>{
-
-
+        datos.forEach((p) => {
             const lat = parseFloat(p.latitud);
             const lon = parseFloat(p.longitud);
-
-
-            if(isNaN(lat) || isNaN(lon)){
-                return;
-            }
-
-
-            coordenadas.push([lat,lon]);
-
-
-            const popup = `
-    <b>📍 Revisión #${index+1}</b><br>
-    Instalación: ${p.instalacion}<br>
-    Serial: ${p.serialnumber}<br>
-    Comentario: ${p.comentario || ''}
-
-    <br><br>
-
-    <button
-        onclick="abrirEvidencia(${p.id})"
-        style="
-            width:100%;
-            padding:10px;
-            background:#388e3c;
-            color:white;
-            border:none;
-            border-radius:6px;
-            font-size:15px;
-        ">
-        🔎 Ejecutar revisión
-    </button>
-`;
-
-
-            // 🟢 Punto visual de revisión
-L.circleMarker([lat,lon],{
-
-    radius:6,
-    color:"#388e3c",
-    fillColor:"#388e3c",
-    fillOpacity:0.9,
-    weight:2
-
-})
-.addTo(rutaLayer)
-.bindPopup(popup);
-
-
-// 🟢 Área táctil invisible para móvil
-L.circleMarker([lat,lon],{
-
-    radius:16,
-    color:"transparent",
-    fillColor:"#ffffff",
-    fillOpacity:0
-
-})
-.addTo(rutaLayer)
-.bindPopup(popup);
-
-
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+            revisionesRuta.push({ ...p, latitud: lat, longitud: lon });
         });
 
-
-        if(coordenadas.length < 2){
-            map.setView(coordenadas[0],16);
+        if (revisionesRuta.length === 0) {
+            alert("Las revisiones no tienen coordenadas válidas para dibujar la ruta.");
             return;
         }
 
-
-        L.polyline(coordenadas,{
-
-            color:"green",
-            weight:4,
-            opacity:0.8
-
-        }).addTo(rutaLayer);
-
-
-
-        // inicio
-        L.marker(coordenadas[0])
-        .addTo(rutaLayer)
-        .bindPopup("🟢 Inicio de revisión");
-
-
-        // fin
-        L.marker(coordenadas[coordenadas.length-1],{
-            icon:redIcon
-        })
-        .addTo(rutaLayer)
-        .bindPopup("🔴 Última revisión");
-
-
-        map.fitBounds(coordenadas,{
-            padding:[40,40]
-        });
-
-
+        dibujarRevisionesRuta(revisionesRuta, false);
+        if (botonOptimizar) botonOptimizar.style.display = "block";
     })
-    .catch(err=>{
-
-        console.error("Error ruta revisiones:",err);
-
+    .catch(err => {
+        console.error("Error ruta revisiones:", err);
+        alert("No fue posible cargar las revisiones. Intenta nuevamente.");
     });
-
 }
 
+// Distancia aproximada en línea recta entre dos coordenadas (metros).
+function distanciaRutaMetros(a, b) {
+    const R = 6371000;
+    const rad = grados => grados * Math.PI / 180;
+    const dLat = rad(b[0] - a[0]);
+    const dLon = rad(b[1] - a[1]);
+    const lat1 = rad(a[0]);
+    const lat2 = rad(b[0]);
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) ** 2;
+    return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)));
+}
+
+// Heurística inicial: desde el origen, visita siempre la OS pendiente más cercana.
+function calcularOrdenCercano(origen, puntos) {
+    const pendientes = puntos.slice();
+    const orden = [];
+    let actual = origen;
+    while (pendientes.length) {
+        let mejorIndice = 0;
+        let mejorDistancia = Infinity;
+        for (let i = 0; i < pendientes.length; i++) {
+            const p = pendientes[i];
+            const d = distanciaRutaMetros(actual, [p.latitud, p.longitud]);
+            if (d < mejorDistancia) {
+                mejorDistancia = d;
+                mejorIndice = i;
+            }
+        }
+        const siguiente = pendientes.splice(mejorIndice, 1)[0];
+        orden.push(siguiente);
+        actual = [siguiente.latitud, siguiente.longitud];
+    }
+    return orden;
+}
+
+function optimizarRutaRevisiones() {
+    if (!revisionesRuta.length) {
+        alert("Primero pulsa ‘Ver Revisiones’ para cargar las órdenes pendientes.");
+        return;
+    }
+
+    if (userLat !== null && userLon !== null && Number.isFinite(userLat) && Number.isFinite(userLon)) {
+        origenManualRuta = null;
+        aplicarOptimizacionRuta([userLat, userLon]);
+        return;
+    }
+
+    seleccionandoOrigenRuta = true;
+    alert("No hay GPS disponible. Toca el mapa en el lugar donde deseas iniciar el recorrido.");
+    map.once("click", function(e) {
+        if (!seleccionandoOrigenRuta) return;
+        seleccionandoOrigenRuta = false;
+        origenManualRuta = [e.latlng.lat, e.latlng.lng];
+        aplicarOptimizacionRuta(origenManualRuta);
+    });
+}
+
+function aplicarOptimizacionRuta(origen) {
+    if (!origen || !revisionesRuta.length) return;
+    revisionesRuta = calcularOrdenCercano(origen, revisionesRuta);
+    rutaOptimizadaActiva = true;
+    dibujarRevisionesRuta(revisionesRuta, true);
+}
+
+function dibujarRevisionesRuta(puntos, optimizada) {
+    rutaLayer.clearLayers();
+    const coordenadas = [];
+
+    puntos.forEach((p, index) => {
+        const lat = p.latitud;
+        const lon = p.longitud;
+        coordenadas.push([lat, lon]);
+        const esInicio = optimizada && index === 0;
+        const esFin = optimizada && index === puntos.length - 1;
+        const etiqueta = optimizada ? `Parada #${index + 1}` : `Revisión #${index + 1}`;
+        const distintivo = esInicio ? "🟢 INICIO DEL RECORRIDO<br>" : (esFin ? "🔴 ÚLTIMA PARADA<br>" : "");
+        const popup = `
+            <b>${distintivo}📍 ${etiqueta}</b><br>
+            Instalación: ${p.instalacion || ''}<br>
+            Serial: ${p.serialnumber || ''}<br>
+            Comentario: ${p.comentario || ''}<br><br>
+            <button onclick="abrirEvidencia(${p.id})"
+                style="width:100%;padding:10px;background:#388e3c;color:white;border:none;border-radius:6px;font-size:15px;">
+                🔎 Ejecutar revisión
+            </button>`;
+
+        // Se conservan círculos y ventanas; no se agregan pines de inicio/fin.
+        L.circleMarker([lat, lon], {
+            radius: esInicio ? 9 : (esFin ? 8 : 6),
+            color: esFin ? "#c62828" : (esInicio ? "#1b5e20" : "#388e3c"),
+            fillColor: esFin ? "#e53935" : (esInicio ? "#00a000" : "#388e3c"),
+            fillOpacity: 0.95,
+            weight: esInicio || esFin ? 3 : 2
+        }).addTo(rutaLayer).bindPopup(popup);
+
+        // Área táctil amplia para facilitar la selección en teléfonos.
+        L.circleMarker([lat, lon], {
+            radius: 16,
+            color: "transparent",
+            fillColor: "#ffffff",
+            fillOpacity: 0
+        }).addTo(rutaLayer).bindPopup(popup);
+    });
+
+    if (coordenadas.length >= 2) {
+        L.polyline(coordenadas, {
+            color: optimizada ? "#1565c0" : "green",
+            weight: 4,
+            opacity: 0.8
+        }).addTo(rutaLayer);
+    }
+
+    if (coordenadas.length === 1) {
+        map.setView(coordenadas[0], 16);
+    } else {
+        map.fitBounds(coordenadas, { padding: [40, 40] });
+    }
+
+    if (optimizada) {
+        const inicio = puntos[0];
+        const fin = puntos[puntos.length - 1];
+        alert(`Ruta ordenada por proximidad.\nInicio: instalación ${inicio.instalacion || 'N/D'} (serial ${inicio.serialnumber || 'N/D'}).\nÚltima parada: instalación ${fin.instalacion || 'N/D'} (serial ${fin.serialnumber || 'N/D'}).\n\nLa distancia se estima en línea recta; no considera calles ni tráfico.`);
+    }
+}
+
+// ---------------------------------------------------------
 // ---------------------------------------------------------
 // EJECUTAR REVISION
 // ---------------------------------------------------------
