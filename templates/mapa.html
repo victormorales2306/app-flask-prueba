@@ -82,6 +82,7 @@
 
   .modal-content input,
   .modal-content textarea,
+  .modal-content select,
   .modal-content button {
     width: 100%;
     margin-top: 10px;
@@ -89,6 +90,14 @@
     font-size: 16px;
     border-radius: 8px;
     border: 1px solid #ddd;
+    box-sizing: border-box;
+  }
+
+  .modal-content label {
+    display: block;
+    margin-top: 10px;
+    font-size: 14px;
+    color: #333;
   }
 
   .modal-content textarea {
@@ -134,6 +143,28 @@
     <input id="rep_aparato" type="text" placeholder="Número de aparato" />
     <input id="rep_mru" type="text" placeholder="MRU" />
     <input id="rep_ref" type="text" placeholder="Aparato de referencia" />
+
+    <label for="rep_condicion">Condición encontrada en campo</label>
+    <select id="rep_condicion">
+      <option value="" selected disabled>Selecciona una condición</option>
+      <option value="CO">CO — Consumo cero</option>
+      <option value="AA">AA — Aire acondicionado</option>
+      <option value="MD">MD — Medidor dañado</option>
+      <option value="LD">LD — Línea directa</option>
+      <option value="AP24">AP24 — AP encendida 24 h</option>
+      <option value="IL">IL — Suministros ilegales</option>
+      <option value="OT">OT — Otros</option>
+    </select>
+
+    <label for="rep_prioridad">Prioridad de atención</label>
+    <select id="rep_prioridad">
+      <option value="" selected disabled>Selecciona una prioridad</option>
+      <option value="1">1 — Urgente / Alta</option>
+      <option value="2">2 — Media alta</option>
+      <option value="3">3 — Media baja</option>
+      <option value="4">4 — Puede esperar</option>
+    </select>
+
     <textarea id="rep_comentario" placeholder="Comentario"></textarea>
 
     <!-- 🔥 NUEVO INPUT DE FOTO -->
@@ -868,14 +899,25 @@ if (fotos.length > 0) {
     const mru = document.getElementById("rep_mru").value.trim();
     const ref = document.getElementById("rep_ref").value.trim();
     const comentario = document.getElementById("rep_comentario").value.trim();
+    const condicion = document.getElementById("rep_condicion").value;
+    const prioridad = document.getElementById("rep_prioridad").value;
     const foto = document.getElementById("rep_foto").files[0];
 
     if (!aparato || !mru) {
+    alert("Aparato y MRU son obligatorios");
+    return;
+}
 
-        alert("Aparato y MRU son obligatorios");
-        return;
+if (!condicion) {
+    alert("Debes seleccionar la condición encontrada en campo");
+    return;
+}
 
-    }
+if (!prioridad) {
+    alert("Debes seleccionar la prioridad de atención");
+    return;
+}
+
 
     const botonEnviar = document.querySelector("#modalReporte button");
 
@@ -897,6 +939,8 @@ if (fotos.length > 0) {
             formData.append("mru", mru);
             formData.append("referencia", ref);
             formData.append("comentario", comentario);
+            formData.append("condicion", condicion);
+            formData.append("prioridad", prioridad);
             formData.append("latitud", userLat);
             formData.append("longitud", userLon);
             formData.append("fecha", new Date().toISOString());
@@ -916,20 +960,31 @@ if (fotos.length > 0) {
 
             })
 
-            .then(r=>r.json())
+            .then(async r => {
+    const res = await r.json();
 
-            .then(res=>{
+    if (!r.ok || res.error || res.status !== "ok") {
+        throw new Error(res.error || "No se pudo guardar el reporte");
+    }
 
-                console.log(res);
+    return res;
+})
 
-                alert("Reporte enviado correctamente 📍");
+.then(res => {
 
-                cerrarReporte();
+    console.log(res);
+
+    alert("Reporte enviado correctamente 📍");
+
+    cerrarReporte();
+
 
                 document.getElementById("rep_aparato").value="";
                 document.getElementById("rep_mru").value="";
                 document.getElementById("rep_ref").value="";
                 document.getElementById("rep_comentario").value="";
+                document.getElementById("rep_condicion").selectedIndex = 0;
+                document.getElementById("rep_prioridad").selectedIndex = 0;
                 document.getElementById("rep_foto").value="";
 
             })
@@ -965,8 +1020,8 @@ if (fotos.length > 0) {
         {
 
             enableHighAccuracy:true,
-            timeout:10000,
-            maximumAge:0
+            timeout:30000,
+            maximumAge:60000
 
         }
 

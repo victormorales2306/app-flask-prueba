@@ -575,7 +575,7 @@ def obtener_reportes():
 
     try:
         query = """
-            SELECT aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha, foto
+            SELECT aparato, mru, referencia, condicion, prioridad, comentario, latitud, longitud, usuario, fecha, foto
             FROM reportes_medidores
             WHERE 1=1
         """
@@ -590,7 +590,7 @@ def obtener_reportes():
             query += " AND fecha::date <= %s"
             params.append(fecha_fin)
 
-        query += " ORDER BY fecha DESC LIMIT 200"
+        query += " ORDER BY fecha DESC"
 
         cur.execute(query, tuple(params))
         return jsonify(cur.fetchall())
@@ -616,6 +616,8 @@ def api_reportes():
             mru = data.get("mru")
             referencia = data.get("referencia")
             comentario = data.get("comentario")
+            condicion = data.get("condicion")
+            prioridad = data.get("prioridad")
             latitud = data.get("latitud")
             longitud = data.get("longitud")
             fecha = data.get("fecha")
@@ -627,6 +629,8 @@ def api_reportes():
             mru = request.form.get("mru")
             referencia = request.form.get("referencia")
             comentario = request.form.get("comentario")
+            condicion = request.form.get("condicion")
+            prioridad = request.form.get("prioridad")
             latitud = request.form.get("latitud")
             longitud = request.form.get("longitud")
             fecha = request.form.get("fecha")
@@ -655,21 +659,57 @@ def api_reportes():
 
                         foto_ruta = ruta_relativa.replace("\\", "/")
 
+        # Validar condición y prioridad en el servidor
+        condiciones_validas = {"CO", "AA", "MD", "LD", "AP24", "IL", "OT"}
+        prioridades_validas = {"1", "2", "3", "4"}
+
+        condicion = str(condicion or "").strip().upper()
+        prioridad = str(prioridad or "").strip()
+
+        if condicion not in condiciones_validas:
+            return jsonify({
+                "status": "error",
+                "error": "Debes seleccionar una condición válida."
+            }), 400
+
+        if prioridad not in prioridades_validas:
+            return jsonify({
+                "status": "error",
+                "error": "Debes seleccionar una prioridad válida."
+            }), 400
+
+        prioridad = int(prioridad)
+
         cur.execute("""
-            INSERT INTO reportes_medidores
-            (aparato, mru, referencia, comentario, latitud, longitud, usuario, fecha, foto)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (
-            aparato,
-            mru,
-            referencia,
-            comentario,
-            latitud,
-            longitud,
-            session["usuario"],
-            fecha,
-            foto_ruta
-        ))
+                     INSERT INTO reportes_medidores
+
+                  (
+        aparato,
+        mru,
+        referencia,
+        condicion,
+        prioridad,
+        comentario,
+        latitud,
+        longitud,
+        usuario,
+        fecha,
+        foto
+    )
+    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+""", (
+    aparato,
+    mru,
+    referencia,
+    condicion,
+    prioridad,
+    comentario,
+    latitud,
+    longitud,
+    session["usuario"],
+    fecha,
+    foto_ruta
+))
 
         conn.commit()
 
@@ -690,8 +730,7 @@ def exportar_reportes():
 
     try:
         cur.execute("""
-            SELECT aparato, mru, referencia, comentario,
-                   latitud, longitud, usuario, fecha, foto
+            SELECT aparato, mru, referencia, condicion, prioridad, comentario, latitud, longitud, usuario, fecha, foto
             FROM reportes_medidores
             ORDER BY fecha DESC
         """)
@@ -703,10 +742,18 @@ def exportar_reportes():
         ws.title = "Reportes"
 
         ws.append([
-            "APARATO","MRU","REFERENCIA","COMENTARIO",
-            "LAT","LON","USUARIO","FECHA","FOTO"
-        ])
-
+    "APARATO",
+    "MRU",
+    "REFERENCIA",
+    "CONDICION",
+    "PRIORIDAD",
+    "COMENTARIO",
+    "LAT",
+    "LON",
+    "USUARIO",
+    "FECHA",
+    "FOTO"
+])
         base_url = request.host_url.rstrip("/")
 
         for r in rows:
@@ -714,6 +761,8 @@ def exportar_reportes():
                 r["aparato"],
                 r["mru"],
                 r["referencia"],
+                r["condicion"],
+                r["prioridad"],
                 r["comentario"],
                 r["latitud"],
                 r["longitud"],
@@ -724,8 +773,7 @@ def exportar_reportes():
 
             if r["foto"]:
                 fila = ws.max_row
-                celda = ws[f"I{fila}"]
-
+                celda = ws[f"K{fila}"]
                 foto = r["foto"]
 
                 if foto:
@@ -748,6 +796,7 @@ def exportar_reportes():
 
     finally:
         conn.close()
+
 # ---------------- INTENTOS ----------------
 
 def registrar_intento(ip, conn):

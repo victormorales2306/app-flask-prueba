@@ -2,283 +2,390 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Reportes de medidores</title>
+<title>Panel de reportes de medidores</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-html, body {
-  height: 100%;
-  margin: 0;
-  font-family: Arial, sans-serif;
+:root {
+  --azul:#174a7e; --azul2:#2167a5; --fondo:#f3f6fa; --texto:#243447;
+  --borde:#dce4ed; --verde:#218838; --sombra:0 3px 14px rgba(25,45,70,.08);
 }
-#map { height: 100%; width: 100%; }
-
-.sidebar {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 340px;
-  max-height: 95vh;
-  background: white;
-  z-index: 1000;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
+* { box-sizing:border-box; }
+html, body { margin:0; min-height:100%; font-family:Arial,sans-serif; color:var(--texto); background:var(--fondo); }
+header {
+  background:linear-gradient(115deg,var(--azul),var(--azul2)); color:white;
+  padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
 }
-
-.sidebar-header {
-  padding: 12px;
-  background: #1976d2;
-  color: white;
-  font-weight: bold;
+header h1 { margin:0; font-size:23px; }
+header p { margin:5px 0 0; font-size:13px; opacity:.9; }
+.header-actions { display:flex; gap:8px; flex-wrap:wrap; }
+main { max-width:1800px; margin:auto; padding:18px; }
+button, input, select { font:inherit; }
+button, .link-button {
+  border:0; border-radius:7px; padding:10px 13px; cursor:pointer; font-weight:600;
+  text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px;
 }
-
-.filters {
-  padding: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+button:disabled { opacity:.55; cursor:wait; }
+.btn-primary { background:var(--azul2); color:white; }
+.btn-green { background:var(--verde); color:white; }
+.btn-light { background:white; color:var(--texto); border:1px solid var(--borde); }
+.panel { background:white; border:1px solid var(--borde); border-radius:12px; box-shadow:var(--sombra); margin-bottom:16px; }
+.panel-title { padding:15px 17px; border-bottom:1px solid var(--borde); font-size:16px; font-weight:700; }
+.panel-body { padding:16px; }
+.filters { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; align-items:end; }
+.field { display:flex; flex-direction:column; gap:6px; }
+.field label { font-size:12px; color:#536477; font-weight:700; }
+.field input, .field select, #busqueda {
+  width:100%; min-width:0; padding:10px; border:1px solid #cbd5e1; border-radius:7px; background:white;
 }
-
-.filters input, .filters button {
-  padding: 8px;
-  font-size: 13px;
+.filter-actions { display:flex; gap:8px; flex-wrap:wrap; grid-column:1/-1; }
+.status { color:#64748b; font-size:13px; margin-top:10px; }
+.cards { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:13px; margin-bottom:16px; }
+.metric { padding:17px; border-radius:12px; background:white; border:1px solid var(--borde); box-shadow:var(--sombra); }
+.metric .label { color:#64748b; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.metric .value { font-size:30px; font-weight:700; margin-top:8px; color:var(--azul); overflow-wrap:anywhere; }
+.metric .note { font-size:12px; color:#64748b; margin-top:5px; }
+.charts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.chart-box { min-height:280px; }
+.chart-box canvas { width:100%; max-height:245px; }
+.map-wrap { height:440px; width:100%; }
+#map { height:100%; width:100%; border-radius:0 0 12px 12px; }
+.table-tools { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+#busqueda { max-width:360px; }
+.table-scroll { width:100%; overflow:auto; max-height:650px; border:1px solid var(--borde); border-radius:8px; }
+table { width:100%; border-collapse:separate; border-spacing:0; background:white; font-size:13px; }
+thead th { position:sticky; top:0; z-index:2; background:#edf2f7; white-space:nowrap; }
+th, td { padding:10px 11px; border-bottom:1px solid #e7edf3; text-align:left; vertical-align:top; }
+th button.sort { padding:0; border:0; background:transparent; color:#26384a; font-weight:700; text-align:left; white-space:nowrap; }
+tbody tr:hover { background:#f6faff; }
+.pill { display:inline-block; padding:4px 7px; border-radius:999px; background:#e9eff7; font-size:11px; font-weight:700; white-space:nowrap; }
+.priority-1 { background:#fee2e2; color:#991b1b; }
+.priority-2 { background:#ffedd5; color:#9a3412; }
+.priority-3 { background:#fef3c7; color:#92400e; }
+.priority-4 { background:#dcfce7; color:#166534; }
+.photo-link { color:#1769aa; font-weight:700; }
+.empty { text-align:center; color:#64748b; padding:28px; }
+.footer-note { color:#64748b; font-size:12px; margin-top:10px; }
+@media (max-width:1100px) {
+  .filters { grid-template-columns:repeat(3,minmax(130px,1fr)); }
+  .charts { grid-template-columns:1fr 1fr; }
+  .charts .chart-box:last-child { grid-column:1/-1; }
 }
-
-button {
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.btn { background: #1976d2; color: white; }
-.btn-export { background: #43a047; color: white; }
-
-.table-container {
-  flex: 1;
-  overflow: auto;
-  border-top: 1px solid #ddd;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12px;
-}
-
-th {
-  position: sticky;
-  top: 0;
-  background: #f1f1f1;
-  padding: 6px;
-  border-bottom: 1px solid #ccc;
-}
-
-td {
-  padding: 6px;
-  border-bottom: 1px solid #eee;
-}
-
-.toggle {
-  position: absolute;
-  top: 10px;
-  left: 360px;
-  z-index: 1001;
-  background: #333;
-  color: white;
-  padding: 6px 10px;
-  border-radius: 6px;
-  cursor: pointer;
+@media (max-width:700px) {
+  main { padding:10px; }
+  header { padding:15px; }
+  header h1 { font-size:19px; }
+  .filters { grid-template-columns:1fr 1fr; }
+  .cards { grid-template-columns:1fr 1fr; }
+  .charts { grid-template-columns:1fr; }
+  .charts .chart-box:last-child { grid-column:auto; }
+  .map-wrap { height:350px; }
 }
 </style>
 </head>
-
 <body>
-
-<div class="sidebar" id="sidebar">
-
-  <div class="sidebar-header">
-    📍 Reportes de medidores
+<header>
+  <div>
+    <h1>📍 Panel de reportes de medidores</h1>
+    <p>Consulta, analiza y exporta los reportes registrados</p>
   </div>
-
-  <div class="filters">
-    <label>Desde:</label>
-    <input type="date" id="f_inicio">
-
-    <label>Hasta:</label>
-    <input type="date" id="f_fin">
-
-    <button class="btn" onclick="filtrar()">Filtrar</button>
-    <button class="btn-export" onclick="exportar()">📊 Exportar Excel</button>
-
-    <a href="/" style="text-decoration:none; text-align:center; padding:6px; background:#eee; border-radius:6px;">
-      ← Volver
-    </a>
+  <div class="header-actions">
+    <button class="btn-green" id="btnExportar" type="button">📊 Exportar Excel filtrado</button>
+    <a class="link-button btn-light" href="/">← Volver</a>
   </div>
+</header>
 
-  <div class="table-container">
-    <table id="tablaReportes">
-      <thead>
-        <tr>
-          <th>Aparato</th>
-          <th>MRU</th>
-          <th>Usuario</th>
-          <th>Fecha</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
+<main>
+  <section class="panel">
+    <div class="panel-title">Filtros de consulta</div>
+    <div class="panel-body">
+      <div class="filters">
+        <div class="field"><label for="f_inicio">Fecha desde</label><input type="date" id="f_inicio"></div>
+        <div class="field"><label for="f_fin">Fecha hasta</label><input type="date" id="f_fin"></div>
+        <div class="field"><label for="f_usuario">Usuario</label><select id="f_usuario"><option value="">Todos los usuarios</option></select></div>
+        <div class="field"><label for="f_condicion">Condición</label>
+          <select id="f_condicion">
+            <option value="">Todas las condiciones</option>
+            <option value="CO">CO — Consumo cero</option><option value="AA">AA — Aire acondicionado</option>
+            <option value="MD">MD — Medidor dañado</option><option value="LD">LD — Línea directa</option>
+            <option value="AP24">AP24 — AP encendida 24 h</option><option value="IL">IL — Suministros ilegales</option>
+            <option value="OT">OT — Otros</option>
+          </select>
+        </div>
+        <div class="field"><label for="f_prioridad">Prioridad</label>
+          <select id="f_prioridad">
+            <option value="">Todas las prioridades</option><option value="1">1 — Urgente</option>
+            <option value="2">2 — Alta</option><option value="3">3 — Media</option><option value="4">4 — Puede esperar</option>
+          </select>
+        </div>
+        <div class="filter-actions">
+          <button class="btn-primary" id="btnFiltrar" type="button">Aplicar filtros</button>
+          <button class="btn-light" id="btnLimpiar" type="button">Limpiar filtros</button>
+        </div>
+      </div>
+      <div class="status" id="estadoCarga" role="status">Cargando reportes…</div>
+    </div>
+  </section>
 
-</div>
+  <section class="cards">
+    <div class="metric"><div class="label">Reportes encontrados</div><div class="value" id="m_total">0</div><div class="note">Según los filtros aplicados</div></div>
+    <div class="metric"><div class="label">Usuarios con reportes</div><div class="value" id="m_usuarios">0</div><div class="note">Usuarios distintos</div></div>
+    <div class="metric"><div class="label">Prioridad 1</div><div class="value" id="m_p1">0</div><div class="note">Reportes urgentes</div></div>
+    <div class="metric"><div class="label">Condición más reportada</div><div class="value" id="m_condicion" style="font-size:20px">—</div><div class="note" id="m_condicion_nota">Sin datos</div></div>
+  </section>
 
-<div class="toggle" onclick="toggleSidebar()">☰</div>
+  <section class="panel">
+    <div class="panel-title">Resumen estadístico de los reportes filtrados</div>
+    <div class="panel-body charts">
+      <div class="chart-box"><div class="field"><label>Reportes por usuario</label></div><canvas id="chartUsuarios"></canvas></div>
+      <div class="chart-box"><div class="field"><label>Reportes por condición</label></div><canvas id="chartCondiciones"></canvas></div>
+      <div class="chart-box"><div class="field"><label>Reportes por prioridad</label></div><canvas id="chartPrioridades"></canvas></div>
+    </div>
+  </section>
 
-<div id="map"></div>
+  <section class="panel">
+    <div class="panel-title">Mapa de reportes</div>
+    <div class="map-wrap"><div id="map"></div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">Detalle completo de reportes</div>
+    <div class="panel-body">
+      <div class="table-tools">
+        <div id="conteoTabla">0 reportes</div>
+        <input id="busqueda" type="search" placeholder="Buscar en los resultados…" aria-label="Buscar en los resultados">
+      </div>
+      <div class="table-scroll">
+        <table id="tablaReportes">
+          <thead><tr>
+            <th><button class="sort" data-sort="aparato">Aparato ↕</button></th>
+            <th><button class="sort" data-sort="mru">MRU ↕</button></th>
+            <th><button class="sort" data-sort="referencia">Referencia ↕</button></th>
+            <th><button class="sort" data-sort="condicion">Condición ↕</button></th>
+            <th><button class="sort" data-sort="prioridad">Prioridad ↕</button></th>
+            <th><button class="sort" data-sort="comentario">Comentario ↕</button></th>
+            <th>Latitud</th><th>Longitud</th>
+            <th><button class="sort" data-sort="usuario">Usuario ↕</button></th>
+            <th><button class="sort" data-sort="fecha">Fecha ↕</button></th><th>Fotografía</th>
+          </tr></thead>
+          <tbody id="tablaBody"></tbody>
+        </table>
+      </div>
+      <div class="footer-note">Selecciona el encabezado de una columna con ↕ para ordenar. Los filtros también se aplican a la exportación de Excel.</div>
+    </div>
+  </section>
+</main>
 
 <script>
-
-const map = L.map('map').setView([13.7, -89.2], 10);
-
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  maxZoom: 19
-}).addTo(map);
-
+const etiquetasCondicion = {
+  CO:"CO — Consumo cero", AA:"AA — Aire acondicionado", MD:"MD — Medidor dañado",
+  LD:"LD — Línea directa", AP24:"AP24 — AP encendida 24 h", IL:"IL — Suministros ilegales", OT:"OT — Otros"
+};
+const etiquetasPrioridad = {"1":"1 — Urgente","2":"2 — Alta","3":"3 — Media","4":"4 — Puede esperar"};
+const map = L.map("map").setView([13.7, -89.2], 10);
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const markers = L.layerGroup().addTo(map);
 
-/* 🔥 NUEVO: buscar foto por cercanía */
-function buscarFotoCercana(reporte, fotos) {
-  const lat1 = parseFloat(reporte.latitud);
-  const lon1 = parseFloat(reporte.longitud);
+let reportes = [];
+let reportesFiltrados = [];
+let orden = {campo:"fecha", direccion:-1};
+let charts = {};
 
-  return fotos.find(f => {
-    const lat2 = parseFloat(f.latitud);
-    const lon2 = parseFloat(f.longitud);
-
-    return (
-      Math.abs(lat1 - lat2) < 0.0005 &&
-      Math.abs(lon1 - lon2) < 0.0005
-    );
-  });
+function textoSeguro(valor) {
+  return String(valor ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-
-/* 🔥 MODIFICADO: ahora recibe fotos */
-function pintar(data, fotos) {
-
-  markers.clearLayers();
-
-  const tbody = document.querySelector("#tablaReportes tbody");
-  tbody.innerHTML = "";
-
-  const bounds = [];
-
-  data.forEach(r => {
-
-    const lat = parseFloat(r.latitud);
-    const lon = parseFloat(r.longitud);
-
-    if (isNaN(lat) || isNaN(lon)) return;
-
-    /* 🔥 NUEVO */
-    const foto = buscarFotoCercana(r, fotos);
-
-    let imgHtml = "";
-    if (foto) {
-      imgHtml = `<br><img src="/static/${foto.ruta}" style="width:150px;border-radius:8px;margin-top:5px;">`;
+function condicionTexto(v) { return etiquetasCondicion[v] || (v || "Sin condición"); }
+function prioridadTexto(v) { return etiquetasPrioridad[String(v)] || (v == null || v === "" ? "Sin prioridad" : String(v)); }
+function fotoUrl(foto) {
+  if (!foto) return "";
+  const s = String(foto);
+  if (/^https?:\/\//i.test(s)) return s;
+  return "/static/" + s.replace(/^\/?static\//, "").replace(/^\/+/, "");
+}
+function formatoFecha(v) {
+  if (!v) return "";
+  return String(v).replace("T"," ").replace(/(\.\d+)?Z$/, "");
+}
+function filtrosActuales() {
+  return {
+    inicio:document.getElementById("f_inicio").value,
+    fin:document.getElementById("f_fin").value,
+    usuario:document.getElementById("f_usuario").value,
+    condicion:document.getElementById("f_condicion").value,
+    prioridad:document.getElementById("f_prioridad").value
+  };
+}
+function urlConFiltros(base) {
+  const p = new URLSearchParams();
+  Object.entries(filtrosActuales()).forEach(([k,v]) => { if (v) p.set(k,v); });
+  return base + (p.toString() ? "?" + p.toString() : "");
+}
+function poblarUsuarios(data) {
+  const select = document.getElementById("f_usuario");
+  const seleccionado = select.value;
+  const usuarios = [...new Set(data.map(r => String(r.usuario || "").trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
+  select.innerHTML = '<option value="">Todos los usuarios</option>' +
+    usuarios.map(u=>`<option value="${textoSeguro(u)}">${textoSeguro(u)}</option>`).join("");
+  if (usuarios.includes(seleccionado)) select.value = seleccionado;
+}
+function aplicarFiltrosLocales() {
+  const f = filtrosActuales();
+  reportesFiltrados = reportes.filter(r => {
+    const fecha = String(r.fecha || "").slice(0,10);
+    return (!f.inicio || fecha >= f.inicio) &&
+      (!f.fin || fecha <= f.fin) &&
+      (!f.usuario || String(r.usuario || "") === f.usuario) &&
+      (!f.condicion || String(r.condicion || "") === f.condicion) &&
+      (!f.prioridad || String(r.prioridad ?? "") === f.prioridad);
+  });
+  actualizarVista();
+}
+function contarPor(data, campo, transform=v=>String(v || "Sin dato")) {
+  const c = {};
+  data.forEach(r => { const k=transform(r[campo]); c[k]=(c[k]||0)+1; });
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]);
+}
+function actualizarChart(id, tipo, labels, values, horizontal=false) {
+  if (charts[id]) charts[id].destroy();
+  const ctx = document.getElementById(id);
+  charts[id] = new Chart(ctx, {
+    type:tipo,
+    data:{labels, datasets:[{label:"Reportes",data:values, borderWidth:1}]},
+    options:{
+      responsive:true, maintainAspectRatio:true,
+      indexAxis:horizontal?"y":"x",
+      plugins:{legend:{display:tipo==="doughnut"}, tooltip:{enabled:true}},
+      scales:tipo==="bar"?{y:{beginAtZero:true,ticks:{precision:0}}}:{}
     }
-
-    const marker = L.marker([lat, lon]).addTo(markers);
-
-    let fotoHTML = "";
-
-if (r.foto) {
-  let src = r.foto;
-
-  // si es local, construir ruta
-  if (!src.startsWith("http")) {
-    src = "/static/" + src;
-  }
-
-  fotoHTML = `<br><img src="${src}" style="width:100%; max-width:200px; border-radius:8px;">`;
-}
-
-marker.bindPopup(`
-  <b>📍 Reporte</b><br>
-  Aparato: ${r.aparato}<br>
-  MRU: ${r.mru}<br>
-  Usuario: ${r.usuario}<br>
-  Fecha: ${r.fecha}<br>
-  <small>${r.comentario || ''}</small>
-  ${fotoHTML}
-`);
-
-    bounds.push([lat, lon]);
-
-    tbody.innerHTML += `
-      <tr>
-        <td>${r.aparato || ''}</td>
-        <td>${r.mru || ''}</td>
-        <td>${r.usuario || ''}</td>
-        <td>${r.fecha || ''}</td>
-      </tr>
-    `;
   });
+}
+function actualizarResumen(data) {
+  document.getElementById("m_total").textContent = data.length.toLocaleString("es");
+  document.getElementById("m_usuarios").textContent = new Set(data.map(r=>r.usuario).filter(Boolean)).size.toLocaleString("es");
+  document.getElementById("m_p1").textContent = data.filter(r=>String(r.prioridad)==="1").length.toLocaleString("es");
+  const condiciones = contarPor(data,"condicion",condicionTexto);
+  document.getElementById("m_condicion").textContent = condiciones.length ? condiciones[0][0] : "—";
+  document.getElementById("m_condicion_nota").textContent = condiciones.length ? `${condiciones[0][1]} reporte(s)` : "Sin datos";
 
-  if (bounds.length > 0) {
-    map.fitBounds(bounds);
+  const usuarios = contarPor(data,"usuario",v=>v || "Sin usuario").slice(0,12);
+  actualizarChart("chartUsuarios","bar",usuarios.map(x=>x[0]),usuarios.map(x=>x[1]),true);
+  const cond = contarPor(data,"condicion",condicionTexto);
+  actualizarChart("chartCondiciones","doughnut",cond.map(x=>x[0]),cond.map(x=>x[1]));
+  const prios = ["1","2","3","4"].map(p=>[etiquetasPrioridad[p],data.filter(r=>String(r.prioridad)===p).length]);
+  actualizarChart("chartPrioridades","bar",prios.map(x=>x[0]),prios.map(x=>x[1]));
+}
+function popupHtml(r) {
+  const foto = fotoUrl(r.foto);
+  return `<div style="max-width:260px">
+    <b>📍 Reporte de medidor</b><br>
+    <b>Aparato:</b> ${textoSeguro(r.aparato)}<br>
+    <b>MRU:</b> ${textoSeguro(r.mru)}<br>
+    <b>Referencia:</b> ${textoSeguro(r.referencia)}<br>
+    <b>Condición:</b> ${textoSeguro(condicionTexto(r.condicion))}<br>
+    <b>Prioridad:</b> ${textoSeguro(prioridadTexto(r.prioridad))}<br>
+    <b>Usuario:</b> ${textoSeguro(r.usuario)}<br>
+    <b>Fecha:</b> ${textoSeguro(formatoFecha(r.fecha))}<br>
+    <b>Comentario:</b> ${textoSeguro(r.comentario)}
+    ${foto ? `<br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener">Abrir fotografía</a><br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener"><img src="${textoSeguro(foto)}" alt="Fotografía del reporte" style="width:100%;max-width:220px;border-radius:7px;margin-top:6px"></a>` : ""}
+  </div>`;
+}
+function actualizarMapa(data) {
+  markers.clearLayers();
+  const bounds = [];
+  data.forEach(r => {
+    const lat=Number(r.latitud), lon=Number(r.longitud);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat===0 || lon===0) return;
+    const marker=L.marker([lat,lon]).addTo(markers);
+    marker.bindPopup(popupHtml(r));
+    bounds.push([lat,lon]);
+  });
+  if (bounds.length) map.fitBounds(bounds,{padding:[25,25],maxZoom:16});
+  else map.setView([13.7,-89.2],10);
+  setTimeout(()=>map.invalidateSize(),100);
+}
+function celda(valor) { return `<td>${textoSeguro(valor)}</td>`; }
+function actualizarTabla(data) {
+  const busqueda=document.getElementById("busqueda").value.trim().toLocaleLowerCase("es");
+  const visibles=data.filter(r => [
+    r.aparato,r.mru,r.referencia,condicionTexto(r.condicion),prioridadTexto(r.prioridad),
+    r.comentario,r.latitud,r.longitud,r.usuario,formatoFecha(r.fecha)
+  ].some(v=>String(v ?? "").toLocaleLowerCase("es").includes(busqueda)));
+  visibles.sort((a,b)=>{
+    const x=a[orden.campo] ?? "", y=b[orden.campo] ?? "";
+    let cmp;
+    if (orden.campo==="fecha") cmp=String(x).localeCompare(String(y));
+    else if (orden.campo==="prioridad") cmp=(Number(x)||999)-(Number(y)||999);
+    else cmp=String(x).localeCompare(String(y),"es",{numeric:true,sensitivity:"base"});
+    return cmp*orden.direccion;
+  });
+  const tbody=document.getElementById("tablaBody");
+  if (!visibles.length) {
+    tbody.innerHTML='<tr><td class="empty" colspan="11">No hay reportes que coincidan con la consulta.</td></tr>';
+  } else {
+    tbody.innerHTML=visibles.map(r=>{
+      const foto=fotoUrl(r.foto);
+      const prioridad=String(r.prioridad ?? "");
+      return `<tr>
+        ${celda(r.aparato)}${celda(r.mru)}${celda(r.referencia)}
+        <td><span class="pill">${textoSeguro(condicionTexto(r.condicion))}</span></td>
+        <td><span class="pill priority-${textoSeguro(prioridad)}">${textoSeguro(prioridadTexto(r.prioridad))}</span></td>
+        ${celda(r.comentario)}${celda(r.latitud)}${celda(r.longitud)}${celda(r.usuario)}${celda(formatoFecha(r.fecha))}
+        <td>${foto?`<a class="photo-link" href="${textoSeguro(foto)}" target="_blank" rel="noopener">Ver foto</a>`:"—"}</td>
+      </tr>`;
+    }).join("");
+  }
+  document.getElementById("conteoTabla").textContent=`Mostrando ${visibles.length.toLocaleString("es")} de ${data.length.toLocaleString("es")} reportes`;
+}
+function actualizarVista() {
+  actualizarResumen(reportesFiltrados);
+  actualizarMapa(reportesFiltrados);
+  actualizarTabla(reportesFiltrados);
+  document.getElementById("estadoCarga").textContent=`Consulta lista: ${reportesFiltrados.length.toLocaleString("es")} reporte(s).`;
+}
+async function cargarReportes() {
+  const estado=document.getElementById("estadoCarga");
+  estado.textContent="Cargando reportes…";
+  document.getElementById("btnFiltrar").disabled=true;
+  try {
+    const response=await fetch("/api/reportes");
+    if (!response.ok) throw new Error(`El servidor respondió ${response.status}.`);
+    const data=await response.json();
+    if (!Array.isArray(data)) throw new Error(data.error || "La respuesta del servidor no tiene el formato esperado.");
+    reportes=data;
+    poblarUsuarios(reportes);
+    aplicarFiltrosLocales();
+  } catch (e) {
+    console.error(e);
+    estado.textContent="No se pudieron cargar los reportes. Revisa la sesión y la conexión con el servidor.";
+    document.getElementById("tablaBody").innerHTML=`<tr><td class="empty" colspan="11">${textoSeguro(e.message)}</td></tr>`;
+  } finally {
+    document.getElementById("btnFiltrar").disabled=false;
   }
 }
-
-/* 🔥 MODIFICADO */
-  function cargarReportes() {
-  fetch("/api/reportes")
-    .then(r => r.json())
-    .then(reportes => {
-      pintar(reportes, []);
-    });
-}
-
-
-/* 🔹 NO SE TOCAN */
-function filtrar() {
-  const inicio = document.getElementById("f_inicio").value;
-  const fin = document.getElementById("f_fin").value;
-
-  let url = "/api/reportes?";
-  if (inicio) url += "inicio=" + inicio + "&";
-  if (fin) url += "fin=" + fin;
-
-  fetch(url)
-  .then(r => r.json())
-  .then(reportes => {
-    pintar(reportes, []);
-  }); // 👈 mantiene compatibilidad
-}
-
 function exportar() {
-  const inicio = document.getElementById("f_inicio").value;
-  const fin = document.getElementById("f_fin").value;
-
-  let url = "/admin/exportar_reportes?";
-  if (inicio) url += "inicio=" + inicio + "&";
-  if (fin) url += "fin=" + fin;
-
-  window.open(url, "_blank");
+  window.location.href=urlConFiltros("/admin/exportar_reportes");
 }
-
-function toggleSidebar() {
-  const sb = document.getElementById("sidebar");
-  sb.style.display = sb.style.display === "none" ? "flex" : "none";
-}
-
+document.getElementById("btnFiltrar").addEventListener("click",aplicarFiltrosLocales);
+document.getElementById("btnLimpiar").addEventListener("click",()=>{
+  ["f_inicio","f_fin","f_usuario","f_condicion","f_prioridad","busqueda"].forEach(id=>document.getElementById(id).value="");
+  aplicarFiltrosLocales();
+});
+document.getElementById("btnExportar").addEventListener("click",exportar);
+document.getElementById("busqueda").addEventListener("input",()=>actualizarTabla(reportesFiltrados));
+document.querySelectorAll("button.sort").forEach(btn=>btn.addEventListener("click",()=>{
+  const campo=btn.dataset.sort;
+  if (orden.campo===campo) orden.direccion*=-1;
+  else {orden.campo=campo; orden.direccion=campo==="fecha"?-1:1;}
+  document.querySelectorAll("button.sort").forEach(b=>b.textContent=b.textContent.replace(/[↑↓↕]/g,"↕"));
+  btn.textContent=btn.textContent.replace("↕",orden.direccion===1?"↑":"↓");
+  actualizarTabla(reportesFiltrados);
+}));
 cargarReportes();
-
 </script>
-
 </body>
 </html>
