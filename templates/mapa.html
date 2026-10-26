@@ -140,9 +140,19 @@
 
     <p id="ubicacionTexto" style="font-size:12px; color:#666;"></p>
 
-    <input id="rep_aparato" type="text" placeholder="Número de aparato" />
-    <input id="rep_mru" type="text" placeholder="MRU" />
-    <input id="rep_ref" type="text" placeholder="Aparato de referencia" />
+    
+<input id="rep_aparato" type="text" placeholder="Número de aparato" />
+
+<!-- NUEVO: Antecedentes de reportes anteriores -->
+<div id="antecedentesReportes"
+     style="display:none; margin-top:10px; padding:12px;
+            border:1px solid #ddd; border-radius:8px;
+            background:#f7f9fc; font-size:14px;">
+</div>
+
+<input id="rep_mru" type="text" placeholder="MRU" />
+<input id="rep_ref" type="text" placeholder="Aparato de referencia" />
+
 
     <label for="rep_condicion">Condición encontrada en campo</label>
     <select id="rep_condicion">
@@ -869,6 +879,145 @@ if (fotos.length > 0) {
 
 }
 
+  // ---------------------------------------------------------
+  // CONSULTAR ANTECEDENTES DE REPORTES DEL APARATO
+  // ---------------------------------------------------------
+
+  let temporizadorAntecedentes = null;
+  let consultaAntecedentes = 0;
+
+  function programarConsultaAntecedentes() {
+      clearTimeout(temporizadorAntecedentes);
+
+      const aparato = document.getElementById("rep_aparato").value.trim();
+      const panel = document.getElementById("antecedentesReportes");
+
+      // Invalidar cualquier consulta anterior en curso.
+      consultaAntecedentes++;
+
+      if (!aparato) {
+          panel.style.display = "none";
+          panel.innerHTML = "";
+          return;
+      }
+
+      panel.style.display = "block";
+      panel.innerHTML = "🔎 Buscando antecedentes de reportes...";
+
+      const consultaActual = consultaAntecedentes;
+
+      // Esperar a que el técnico termine de escribir.
+      temporizadorAntecedentes = setTimeout(async () => {
+          try {
+              const respuesta = await fetch(
+                  `/api/reportes/antecedentes/${encodeURIComponent(aparato)}`
+              );
+
+              const datos = await respuesta.json();
+
+              // Ignorar respuestas de consultas anteriores.
+              if (consultaActual !== consultaAntecedentes) return;
+
+              if (!respuesta.ok) {
+                  throw new Error(datos.error || "Error al consultar antecedentes");
+              }
+
+              const reportes = datos.reportes || [];
+
+              if (reportes.length === 0) {
+                  panel.innerHTML =
+                      "✅ No hay reportes anteriores para este aparato.";
+                  return;
+              }
+
+              panel.innerHTML = "";
+
+              const titulo = document.createElement("h4");
+              titulo.textContent =
+                  `📋 Antecedentes encontrados: ${reportes.length}`;
+              titulo.style.margin = "0 0 10px";
+              panel.appendChild(titulo);
+
+              reportes.forEach((reporte, indice) => {
+                  const tarjeta = document.createElement("div");
+
+                  tarjeta.style.cssText =
+                      "padding:10px 0; border-top:1px solid #ddd;";
+
+                  function agregarTexto(etiqueta, valor) {
+                      const linea = document.createElement("p");
+                      linea.style.margin = "5px 0";
+
+                      const fuerte = document.createElement("strong");
+                      fuerte.textContent = etiqueta;
+
+                      linea.appendChild(fuerte);
+                      linea.appendChild(
+                          document.createTextNode(
+                              valor === null || valor === undefined || valor === ""
+                                  ? "No registrado"
+                                  : String(valor)
+                          )
+                      );
+
+                      tarjeta.appendChild(linea);
+                  }
+
+                  agregarTexto(
+                      "Reporte: ",
+                      reporte.id ?? `#${indice + 1}`
+                  );
+                  agregarTexto("Fecha: ", reporte.fecha);
+                  agregarTexto("Condición: ", reporte.condicion);
+                  agregarTexto("Prioridad: ", reporte.prioridad);
+                  agregarTexto("MRU: ", reporte.mru);
+                  agregarTexto("Referencia: ", reporte.referencia);
+                  agregarTexto("Comentario del técnico: ", reporte.comentario);
+                  agregarTexto(
+                      "Seguimiento del analista: ",
+                      reporte.seguimiento_comentario
+                  );
+                  agregarTexto("Orden SAP: ", reporte.orden_sap);
+                  agregarTexto("Estado SAP: ", reporte.estado_sap);
+                  agregarTexto(
+                      "Última actualización: ",
+                      reporte.seguimiento_actualizado
+                  );
+
+                  panel.appendChild(tarjeta);
+              });
+
+              const aviso = document.createElement("p");
+              aviso.style.cssText =
+                  "margin:10px 0 0; color:#176b2c; font-weight:bold;";
+              aviso.textContent =
+                  "Puedes enviar un nuevo reporte. Los antecedentes no bloquean el registro.";
+              panel.appendChild(aviso);
+
+          } catch (error) {
+              if (consultaActual !== consultaAntecedentes) return;
+
+              console.error("Error consultando antecedentes:", error);
+              panel.innerHTML =
+                  "⚠️ No se pudieron consultar los antecedentes. Puedes continuar con el reporte.";
+          }
+      }, 500);
+  }
+
+  // Consultar cuando el técnico termina de escribir o cambia el número.
+  document.getElementById("rep_aparato").addEventListener(
+      "input",
+      programarConsultaAntecedentes
+  );
+
+  document.getElementById("rep_aparato").addEventListener(
+      "blur",
+      () => {
+          clearTimeout(temporizadorAntecedentes);
+          programarConsultaAntecedentes();
+      }
+  );
+
   function cerrarReporte() {
     document.getElementById("modalReporte").style.display = "none";
   }
@@ -970,24 +1119,38 @@ if (!prioridad) {
     return res;
 })
 
+
 .then(res => {
 
     console.log(res);
 
     alert("Reporte enviado correctamente 📍");
 
+    // Cancelar consultas de antecedentes que estén pendientes.
+    clearTimeout(temporizadorAntecedentes);
+    consultaAntecedentes++;
+
+    // Limpiar y ocultar los antecedentes del aparato anterior.
+    const panelAntecedentes =
+        document.getElementById("antecedentesReportes");
+
+    panelAntecedentes.innerHTML = "";
+    panelAntecedentes.style.display = "none";
+
+    // Cerrar el formulario.
     cerrarReporte();
 
+    // Limpiar los campos del reporte.
+    document.getElementById("rep_aparato").value = "";
+    document.getElementById("rep_mru").value = "";
+    document.getElementById("rep_ref").value = "";
+    document.getElementById("rep_comentario").value = "";
+    document.getElementById("rep_condicion").selectedIndex = 0;
+    document.getElementById("rep_prioridad").selectedIndex = 0;
+    document.getElementById("rep_foto").value = "";
 
-                document.getElementById("rep_aparato").value="";
-                document.getElementById("rep_mru").value="";
-                document.getElementById("rep_ref").value="";
-                document.getElementById("rep_comentario").value="";
-                document.getElementById("rep_condicion").selectedIndex = 0;
-                document.getElementById("rep_prioridad").selectedIndex = 0;
-                document.getElementById("rep_foto").value="";
+})
 
-            })
 
             .catch(err=>{
 

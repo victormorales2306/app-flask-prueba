@@ -560,27 +560,103 @@ def guardar_evidencia_orden(orden_id):
 
         conn.close()
 
+# ---------------- ANTECEDENTES DE REPORTES ----------------
+
+@app.route("/api/reportes/antecedentes/<serial>", methods=["GET"])
+@usuario_required
+def antecedentes_reportes(serial):
+
+    serial = serial.strip()
+
+    if not serial:
+        return jsonify({"reportes": []})
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT
+                id,
+                aparato,
+                mru,
+                referencia,
+                condicion,
+                prioridad,
+                comentario,
+                usuario,
+                fecha,
+                seguimiento_comentario,
+                orden_sap,
+                estado_sap,
+                seguimiento_actualizado
+            FROM reportes_medidores
+            WHERE aparato = %s
+            ORDER BY fecha DESC, id DESC
+            LIMIT 10
+        """, (serial,))
+
+        reportes = cur.fetchall()
+
+        return jsonify({
+            "reportes": reportes
+        })
+
+    except Exception as e:
+        print("ERROR CONSULTANDO ANTECEDENTES:", e)
+        return jsonify({
+            "error": "No se pudieron consultar los antecedentes"
+        }), 500
+
+    finally:
+        conn.close()
+
+
 # ---------------- REPORTES ----------------
 
 @app.route("/api/reportes", methods=["GET"])
+@usuario_required
 def obtener_reportes():
-    if "usuario" not in session:
-        return jsonify({"error": "No autorizado"}), 401
 
     fecha_inicio = request.args.get("inicio")
     fecha_fin = request.args.get("fin")
+    usuario_filtro = request.args.get("usuario")
+    condicion_filtro = request.args.get("condicion")
+    prioridad_filtro = request.args.get("prioridad")
 
     conn = get_db()
     cur = conn.cursor()
 
     try:
         query = """
-            SELECT aparato, mru, referencia, condicion, prioridad, comentario, latitud, longitud, usuario, fecha, foto
+            SELECT
+                id,
+                aparato,
+                mru,
+                referencia,
+                condicion,
+                prioridad,
+                comentario,
+                latitud,
+                longitud,
+                usuario,
+                fecha,
+                foto,
+                seguimiento_comentario,
+                orden_sap,
+                estado_sap,
+                seguimiento_actualizado
             FROM reportes_medidores
             WHERE 1=1
         """
 
         params = []
+        print("DEBUG REPORTES - Usuario:", session.get("usuario"))
+        print("DEBUG REPORTES - Rol:", session.get("rol"))
+        # Los técnicos solo pueden consultar sus propios reportes.
+        if session.get("rol") != "admin":
+            query += " AND usuario = %s"
+            params.append(session["usuario"])
 
         if fecha_inicio:
             query += " AND fecha::date >= %s"
@@ -590,81 +666,90 @@ def obtener_reportes():
             query += " AND fecha::date <= %s"
             params.append(fecha_fin)
 
+        # Los filtros administrativos se aplican solo para administradores.
+        if session.get("rol") == "admin":
+
+            if usuario_filtro:
+                query += " AND usuario = %s"
+                params.append(usuario_filtro)
+
+        if condicion_filtro:
+            query += " AND condicion = %s"
+            params.append(condicion_filtro)
+
+        if prioridad_filtro:
+            query += " AND prioridad = %s"
+            params.append(prioridad_filtro)
+
         query += " ORDER BY fecha DESC"
 
         cur.execute(query, tuple(params))
+
         return jsonify(cur.fetchall())
+
+    except Exception as e:
+        print("ERROR CONSULTANDO REPORTES:", e)
+        return jsonify({"error": "No se pudieron consultar los reportes"}), 500
 
     finally:
         conn.close()
 
-# 🔥 AQUÍ ESTÁ LA CORRECCIÓN REAL
+
+# ---------------- GUARDAR REPORTE ----------------
+
 @app.route("/api/reportes", methods=["POST"])
+@usuario_required
 def api_reportes():
-    if "usuario" not in session:
-        return jsonify({"error": "No autorizado"}), 401
 
     conn = get_db()
     cur = conn.cursor()
 
     try:
-        # Detecta tipo de envío
-        if request.content_type and "application/json" in request.content_type:
-            data = request.get_json()
-
-            aparato = data.get("aparato")
-            mru = data.get("mru")
-            referencia = data.get("referencia")
-            comentario = data.get("comentario")
-            condicion = data.get("condicion")
-            prioridad = data.get("prioridad")
-            latitud = data.get("latitud")
-            longitud = data.get("longitud")
-            fecha = data.get("fecha")
-
-            foto_ruta = None
-
+        if request.is_json:
+            data = request.get_json() or {}
         else:
-            aparato = request.form.get("aparato")
-            mru = request.form.get("mru")
-            referencia = request.form.get("referencia")
-            comentario = request.form.get("comentario")
-            condicion = request.form.get("condicion")
-            prioridad = request.form.get("prioridad")
-            latitud = request.form.get("latitud")
-            longitud = request.form.get("longitud")
-            fecha = request.form.get("fecha")
+            data = request.form
 
-            foto_ruta = None
+        aparato = data.get("aparato")
+        mru = data.get("mru")
+        referencia = data.get("referencia")
+        comentario = data.get("comentario")
+        condicion = str(data.get("condicion") or "").strip().upper()
+        prioridad = str(data.get("prioridad") or "").strip()
+        latitud = data.get("latitud")
+        longitud = data.get("longitud")
+        fecha = data.get("fecha")
 
-            if "foto" in request.files:
-                archivo = request.files["foto"]
+        foto_ruta = None
 
-                if archivo and archivo.filename != "" and allowed_file(archivo.filename):
+        if not request.is_json and "foto" in request.files:
+            archivo = request.files["foto"]
 
-                    # 1️⃣ intentar Cloudinary
-                    url_cloud = upload_to_cloudinary(archivo)
+            if archivo and archivo.filename:
+                if not allowed_file(archivo.filename):
+                    return jsonify({
+                        "status": "error",
+                        "error": "Formato de imagen no permitido"
+                    }), 400
 
-                    if url_cloud:
-                        foto_ruta = url_cloud  # ☁️ nube
-                    else:
-                        # 2️⃣ fallback local
-                        nombre = secure_filename(archivo.filename)
-                        nombre_final = f"{int(datetime.now().timestamp())}_{nombre}"
+                foto_ruta = upload_to_cloudinary(archivo)
 
-                        ruta_relativa = os.path.join("uploads", nombre_final)
-                        ruta_fisica = os.path.join("static", ruta_relativa)
+                if not foto_ruta:
+                    nombre = secure_filename(archivo.filename)
+                    nombre_final = (
+                        f"{int(datetime.now().timestamp())}_{nombre}"
+                    )
 
-                        archivo.save(ruta_fisica)
+                    ruta_relativa = os.path.join("uploads", nombre_final)
+                    ruta_fisica = os.path.join("static", ruta_relativa)
 
-                        foto_ruta = ruta_relativa.replace("\\", "/")
+                    archivo.save(ruta_fisica)
+                    foto_ruta = ruta_relativa.replace("\\", "/")
 
-        # Validar condición y prioridad en el servidor
-        condiciones_validas = {"CO", "AA", "MD", "LD", "AP24", "IL", "OT"}
+        condiciones_validas = {
+            "CO", "AA", "MD", "LD", "AP24", "IL", "OT"
+        }
         prioridades_validas = {"1", "2", "3", "4"}
-
-        condicion = str(condicion or "").strip().upper()
-        prioridad = str(prioridad or "").strip()
 
         if condicion not in condiciones_validas:
             return jsonify({
@@ -681,60 +766,253 @@ def api_reportes():
         prioridad = int(prioridad)
 
         cur.execute("""
-                     INSERT INTO reportes_medidores
+            INSERT INTO reportes_medidores
+            (
+                aparato,
+                mru,
+                referencia,
+                condicion,
+                prioridad,
+                comentario,
+                latitud,
+                longitud,
+                usuario,
+                fecha,
+                foto
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    COALESCE(%s::timestamp, NOW()), %s)
+            RETURNING id
+        """, (
+            aparato,
+            mru,
+            referencia,
+            condicion,
+            prioridad,
+            comentario,
+            latitud,
+            longitud,
+            session["usuario"],
+            fecha or None,
+            foto_ruta
+        ))
 
-                  (
-        aparato,
-        mru,
-        referencia,
-        condicion,
-        prioridad,
-        comentario,
-        latitud,
-        longitud,
-        usuario,
-        fecha,
-        foto
-    )
-    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-""", (
-    aparato,
-    mru,
-    referencia,
-    condicion,
-    prioridad,
-    comentario,
-    latitud,
-    longitud,
-    session["usuario"],
-    fecha,
-    foto_ruta
-))
-
+        reporte = cur.fetchone()
         conn.commit()
 
-        return jsonify({"status": "ok"})
+        return jsonify({
+            "status": "ok",
+            "id": reporte["id"]
+        })
 
     except Exception as e:
-        print("ERROR:", e)
-        return jsonify({"error": "Error al guardar"}), 500
+        conn.rollback()
+        print("ERROR GUARDANDO REPORTE:", e)
+        return jsonify({"error": "Error al guardar el reporte"}), 500
 
     finally:
         conn.close()
-# ---------------- EXPORT ----------------
-@app.route("/admin/exportar_reportes")
+
+
+# ---------------- GESTION ADMINISTRATIVA DEL REPORTE ----------------
+
+@app.route(
+    "/api/reportes/<int:reporte_id>/seguimiento",
+    methods=["POST"]
+)
 @admin_required
-def exportar_reportes():
+def guardar_seguimiento_reporte(reporte_id):
+
+    data = request.get_json(silent=True) or {}
+
+    comentario = str(
+        data.get("seguimiento_comentario") or ""
+    ).strip()
+
+    orden_sap = str(data.get("orden_sap") or "").strip() or None
+    estado_sap = str(data.get("estado_sap") or "").strip()
+
+    estados_validos = {
+        "Generada",
+        "Pendiente de asignar",
+        "En tratamiento",
+        "Resuelta",
+        "Anulada"
+    }
+
+    if estado_sap not in estados_validos:
+        return jsonify({
+            "error": "Debes seleccionar un estado válido."
+        }), 400
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
         cur.execute("""
-            SELECT aparato, mru, referencia, condicion, prioridad, comentario, latitud, longitud, usuario, fecha, foto
+            SELECT id
             FROM reportes_medidores
-            ORDER BY fecha DESC
-        """)
+            WHERE id = %s
+            FOR UPDATE
+        """, (reporte_id,))
 
+        if not cur.fetchone():
+            return jsonify({"error": "Reporte no encontrado"}), 404
+
+        cur.execute("""
+            UPDATE reportes_medidores
+            SET
+                seguimiento_comentario = %s,
+                orden_sap = %s,
+                estado_sap = %s,
+                seguimiento_actualizado = NOW()
+            WHERE id = %s
+        """, (
+            comentario,
+            orden_sap,
+            estado_sap,
+            reporte_id
+        ))
+
+        cur.execute("""
+            INSERT INTO reportes_medidores_historial
+            (
+                reporte_id,
+                usuario_gestion,
+                accion,
+                comentario,
+                orden_sap,
+                estado_sap,
+                fecha_gestion
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, NOW())
+        """, (
+            reporte_id,
+            session["usuario"],
+            "Actualización de seguimiento",
+            comentario,
+            orden_sap,
+            estado_sap
+        ))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "ok",
+            "mensaje": "Seguimiento guardado correctamente"
+        })
+
+    except Exception as e:
+        conn.rollback()
+        print("ERROR GUARDANDO SEGUIMIENTO:", e)
+        return jsonify({
+            "error": "No se pudo guardar el seguimiento"
+        }), 500
+
+    finally:
+        conn.close()
+
+
+# ---------------- HISTORIAL DE GESTIONES ----------------
+
+@app.route(
+    "/api/reportes/<int:reporte_id>/historial",
+    methods=["GET"]
+)
+@admin_required
+def historial_seguimiento_reporte(reporte_id):
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        cur.execute("""
+            SELECT
+                id,
+                reporte_id,
+                usuario_gestion,
+                accion,
+                comentario,
+                orden_sap,
+                estado_sap,
+                fecha_gestion
+            FROM reportes_medidores_historial
+            WHERE reporte_id = %s
+            ORDER BY fecha_gestion DESC, id DESC
+        """, (reporte_id,))
+
+        return jsonify(cur.fetchall())
+
+    except Exception as e:
+        print("ERROR CONSULTANDO HISTORIAL:", e)
+        return jsonify({"error": "No se pudo consultar el historial"}), 500
+
+    finally:
+        conn.close()
+
+
+# ---------------- EXPORTAR REPORTES A EXCEL ----------------
+
+@app.route("/admin/exportar_reportes")
+@admin_required
+def exportar_reportes():
+
+    fecha_inicio = request.args.get("inicio")
+    fecha_fin = request.args.get("fin")
+    usuario_filtro = request.args.get("usuario")
+    condicion_filtro = request.args.get("condicion")
+    prioridad_filtro = request.args.get("prioridad")
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+        query = """
+            SELECT
+                aparato,
+                mru,
+                referencia,
+                condicion,
+                prioridad,
+                comentario,
+                latitud,
+                longitud,
+                usuario,
+                fecha,
+                foto,
+                seguimiento_comentario,
+                orden_sap,
+                estado_sap,
+                seguimiento_actualizado
+            FROM reportes_medidores
+            WHERE 1=1
+        """
+
+        params = []
+
+        if fecha_inicio:
+            query += " AND fecha::date >= %s"
+            params.append(fecha_inicio)
+
+        if fecha_fin:
+            query += " AND fecha::date <= %s"
+            params.append(fecha_fin)
+
+        if usuario_filtro:
+            query += " AND usuario = %s"
+            params.append(usuario_filtro)
+
+        if condicion_filtro:
+            query += " AND condicion = %s"
+            params.append(condicion_filtro)
+
+        if prioridad_filtro:
+            query += " AND prioridad = %s"
+            params.append(prioridad_filtro)
+
+        query += " ORDER BY fecha DESC"
+
+        cur.execute(query, tuple(params))
         rows = cur.fetchall()
 
         wb = Workbook()
@@ -742,22 +1020,49 @@ def exportar_reportes():
         ws.title = "Reportes"
 
         ws.append([
-    "APARATO",
-    "MRU",
-    "REFERENCIA",
-    "CONDICION",
-    "PRIORIDAD",
-    "COMENTARIO",
-    "LAT",
-    "LON",
-    "USUARIO",
-    "FECHA",
-    "FOTO"
-])
+            "APARATO",
+            "MRU",
+            "REFERENCIA",
+            "CONDICION",
+            "PRIORIDAD",
+            "COMENTARIO DEL TECNICO",
+            "LAT",
+            "LON",
+            "USUARIO",
+            "FECHA",
+            "FOTO",
+            "SEGUIMIENTO DEL ANALISTA",
+            "ORDEN SAP",
+            "ESTADO SAP",
+            "ULTIMA ACTUALIZACION"
+        ])
+
+        
         base_url = request.host_url.rstrip("/")
 
+        from zoneinfo import ZoneInfo
+        from datetime import datetime
+
+        zona_sv = ZoneInfo("America/El_Salvador")
+
+        def fecha_hora_sv(valor):
+            if valor is None:
+                return None
+
+            if isinstance(valor, datetime):
+                if valor.tzinfo is None:
+                    return valor
+                return valor.astimezone(zona_sv).replace(tzinfo=None)
+
+            return valor
+
         for r in rows:
+            fecha_reporte = fecha_hora_sv(r["fecha"])
+            fecha_gestion = fecha_hora_sv(r["seguimiento_actualizado"])
+
             ws.append([
+
+
                 r["aparato"],
                 r["mru"],
                 r["referencia"],
@@ -767,8 +1072,12 @@ def exportar_reportes():
                 r["latitud"],
                 r["longitud"],
                 r["usuario"],
-                r["fecha"],
-                "ver foto" if r["foto"] else ""
+                fecha_reporte,
+                "ver foto" if r["foto"] else "",
+                r["seguimiento_comentario"],
+                r["orden_sap"],
+                r["estado_sap"],
+                  fecha_gestion
             ])
 
             if r["foto"]:
@@ -776,23 +1085,38 @@ def exportar_reportes():
                 celda = ws[f"K{fila}"]
                 foto = r["foto"]
 
-                if foto:
-                    if foto.startswith("http"):
-                        url = foto  # Cloudinary
-                    else:
-                        url = f'{base_url}/static/{foto}'  # local
+                if foto.startswith("http"):
+                    url = foto
                 else:
-                    url = None
+                    url = f"{base_url}/static/{foto}"
 
-                if url:
-                    celda.value = "ver foto"
-                    celda.hyperlink = url
-                    celda.style = "Hyperlink"
+                celda.value = "ver foto"
+                celda.hyperlink = url
+                celda.style = "Hyperlink"
+
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+
+        for columna in ws.columns:
+            letra = columna[0].column_letter
+            max_largo = max(
+                len(str(celda.value or ""))
+                for celda in columna
+            )
+            ws.column_dimensions[letra].width = min(max_largo + 2, 40)
 
         file_path = "reportes.xlsx"
         wb.save(file_path)
 
-        return send_file(file_path, as_attachment=True)
+        return send_file(
+            file_path,
+            as_attachment=True,
+            download_name="reportes_medidores.xlsx"
+        )
+
+    except Exception as e:
+        print("ERROR EXPORTANDO REPORTES:", e)
+        return jsonify({"error": "No se pudieron exportar los reportes"}), 500
 
     finally:
         conn.close()
