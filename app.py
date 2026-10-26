@@ -651,9 +651,7 @@ def obtener_reportes():
         """
 
         params = []
-        print("DEBUG REPORTES - Usuario:", session.get("usuario"))
-        print("DEBUG REPORTES - Rol:", session.get("rol"))
-        # Los técnicos solo pueden consultar sus propios reportes.
+         # Los técnicos solo pueden consultar sus propios reportes.
         if session.get("rol") != "admin":
             query += " AND usuario = %s"
             params.append(session["usuario"])
