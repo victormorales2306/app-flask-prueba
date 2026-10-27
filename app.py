@@ -643,6 +643,7 @@ def obtener_reportes():
                 usuario,
                 fecha,
                 foto,
+                fotos,
                 seguimiento_comentario,
                 orden_sap,
                 estado_sap,

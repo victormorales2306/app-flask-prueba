@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -13,52 +12,42 @@
 <style>
 :root {
   --azul:#174a7e; --azul2:#2167a5; --fondo:#f3f6fa; --texto:#243447;
-  --borde:#dce4ed; --verde:#218838; --sombra:0 3px 14px rgba(25,45,70,.08);
+  --borde:#dce4ed; --verde:#16805d; --sombra:0 8px 24px rgba(25,45,70,.07); --fondo-card:#ffffff;
 }
 * { box-sizing:border-box; }
-html, body {
-  margin:0; min-height:100%; font-family:Arial,sans-serif;
-  color:var(--texto); background:var(--fondo);
-}
+html, body { margin:0; min-height:100%; font-family:Arial,sans-serif; color:var(--texto); background:var(--fondo); }
 header {
-  background:linear-gradient(115deg,var(--azul),var(--azul2)); color:white;
-  padding:18px 24px; display:flex; align-items:center;
-  justify-content:space-between; gap:14px; flex-wrap:wrap;
+  background:linear-gradient(115deg,#102f50,#2167a5 72%,#3284b8); color:white;
+  padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
 }
 header h1 { margin:0; font-size:23px; }
 header p { margin:5px 0 0; font-size:13px; opacity:.9; }
 .header-actions { display:flex; gap:8px; flex-wrap:wrap; }
-main { max-width:1800px; margin:auto; padding:18px; }
-button, input, select, textarea { font:inherit; }
+main { max-width:1900px; margin:auto; padding:22px; }
+button, input, select { font:inherit; }
 button, .link-button {
-  border:0; border-radius:7px; padding:10px 13px; cursor:pointer;
-  font-weight:600; text-decoration:none; display:inline-flex;
-  align-items:center; justify-content:center; gap:6px;
+  border:0; border-radius:7px; padding:10px 13px; cursor:pointer; font-weight:600;
+  text-decoration:none; display:inline-flex; align-items:center; justify-content:center; gap:6px;
 }
-button:disabled { opacity:.6; cursor:not-allowed; }
+button:disabled { opacity:.55; cursor:wait; }
 .btn-primary { background:var(--azul2); color:white; }
 .btn-green { background:var(--verde); color:white; }
 .btn-light { background:white; color:var(--texto); border:1px solid var(--borde); }
-.panel {
-  background:white; border:1px solid var(--borde); border-radius:12px;
-  box-shadow:var(--sombra); margin-bottom:16px;
-}
-.panel-title { padding:15px 17px; border-bottom:1px solid var(--borde); font-size:16px; font-weight:700; }
+.panel { background:white; border:1px solid var(--borde); border-radius:15px; box-shadow:var(--sombra); margin-bottom:18px; overflow:hidden; }
+.panel-title { padding:16px 19px; border-bottom:1px solid var(--borde); font-size:15px; font-weight:800; display:flex; align-items:center; gap:9px; }
 .panel-body { padding:16px; }
-.filters {
-  display:grid; grid-template-columns:repeat(6,minmax(130px,1fr));
-  gap:12px; align-items:end;
-}
+.filters { display:grid; grid-template-columns:repeat(6,minmax(130px,1fr)); gap:12px; align-items:end; }
 .field { display:flex; flex-direction:column; gap:6px; }
 .field label { font-size:12px; color:#536477; font-weight:700; }
 .field input, .field select, #busqueda {
-  width:100%; min-width:0; padding:10px; border:1px solid #cbd5e1;
-  border-radius:7px; background:white;
+  width:100%; min-width:0; padding:10px; border:1px solid #cbd5e1; border-radius:7px; background:white;
 }
 .filter-actions { display:flex; gap:8px; flex-wrap:wrap; grid-column:1/-1; }
 .status { color:#64748b; font-size:13px; margin-top:10px; }
-.cards { display:grid; grid-template-columns:repeat(4,minmax(150px,1fr)); gap:13px; margin-bottom:16px; }
-.metric { padding:17px; border-radius:12px; background:white; border:1px solid var(--borde); box-shadow:var(--sombra); }
+.cards { display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:14px; margin-bottom:18px; }
+.metric { padding:19px; border-radius:15px; background:linear-gradient(145deg,#fff,#f9fbfe); border:1px solid var(--borde); box-shadow:var(--sombra); position:relative; overflow:hidden; }
+.metric:before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--azul2); }
+.metric.alert:before { background:#d97706; } .metric.success:before { background:#16805d; } .metric .value { font-variant-numeric:tabular-nums; }
 .metric .label { color:#64748b; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .metric .value { font-size:30px; font-weight:700; margin-top:8px; color:var(--azul); overflow-wrap:anywhere; }
 .metric .note { font-size:12px; color:#64748b; margin-top:5px; }
@@ -67,12 +56,14 @@ button:disabled { opacity:.6; cursor:not-allowed; }
 .chart-box canvas { width:100%; max-height:245px; }
 .map-wrap { height:440px; width:100%; }
 #map { height:100%; width:100%; border-radius:0 0 12px 12px; }
-.table-tools {
-  display:flex; justify-content:space-between; gap:12px;
-  flex-wrap:wrap; align-items:center; margin-bottom:12px;
-}
+.table-tools { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
 #busqueda { max-width:360px; }
 .table-scroll { width:100%; overflow:auto; max-height:650px; border:1px solid var(--borde); border-radius:8px; }
+.scroll-top { width:100%; height:17px; overflow-x:auto; overflow-y:hidden; margin:0 0 7px; border:1px solid var(--borde); border-radius:7px; background:#f1f5f9; }
+.scroll-top-inner { height:1px; }
+.table-scroll::-webkit-scrollbar, .scroll-top::-webkit-scrollbar { height:13px; }
+.table-scroll::-webkit-scrollbar-thumb, .scroll-top::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:10px; border:2px solid #f1f5f9; }
+.table-scroll table { min-width:1700px; }
 table { width:100%; border-collapse:separate; border-spacing:0; background:white; font-size:13px; }
 thead th { position:sticky; top:0; z-index:2; background:#edf2f7; white-space:nowrap; }
 th, td { padding:10px 11px; border-bottom:1px solid #e7edf3; text-align:left; vertical-align:top; }
@@ -87,10 +78,8 @@ tbody tr:hover { background:#f6faff; }
 .empty { text-align:center; color:#64748b; padding:28px; }
 .footer-note { color:#64748b; font-size:12px; margin-top:10px; }
 
-.sap-estado {
-  display:inline-block; padding:5px 8px; border-radius:6px;
-  font-size:11px; font-weight:700; white-space:nowrap;
-}
+/* Seguimiento administrativo de reportes */
+.sap-estado { display:inline-block; padding:5px 8px; border-radius:6px; font-size:11px; font-weight:700; white-space:nowrap; }
 .sap-generada { background:#dbeafe; color:#1d4ed8; }
 .sap-pendiente { background:#fef3c7; color:#92400e; }
 .sap-tratamiento { background:#ede9fe; color:#6d28d9; }
@@ -98,26 +87,28 @@ tbody tr:hover { background:#f6faff; }
 .sap-anulada { background:#fee2e2; color:#991b1b; }
 .seguimiento-vacio { color:#64748b; font-style:italic; }
 .col-seguimiento { min-width:220px; max-width:300px; overflow-wrap:anywhere; }
-.seguimiento-editor { display:flex; flex-direction:column; gap:7px; min-width:200px; }
-.seguimiento-editor textarea,
-.seguimiento-editor input,
-.seguimiento-editor select {
-  width:100%; min-width:0; padding:8px; border:1px solid #cbd5e1;
-  border-radius:6px; font:inherit; font-size:12px; background:white;
-  color:#243447;
-}
-.seguimiento-editor textarea { min-height:75px; resize:vertical; }
-.seguimiento-editor input:disabled { background:#f1f5f9; color:#475569; cursor:not-allowed; }
-.nota-campo { font-size:10px; color:#64748b; line-height:1.4; }
-.btn-guardar-seguimiento { width:100%; background:#e2e8f0; color:#475569; }
-.aviso-seguimiento {
-  margin-top:12px; padding:10px 12px; background:#fff7ed;
-  border:1px solid #fed7aa; border-radius:7px; color:#9a3412;
-  font-size:12px; line-height:1.5;
-}
+.followup-editor { min-width:205px; display:grid; gap:7px; }
+.followup-editor textarea, .followup-editor input, .followup-editor select { width:100%; min-width:170px; padding:8px; border:1px solid #cbd5e1; border-radius:7px; font:inherit; font-size:12px; background:#fff; }
+.followup-editor textarea { min-height:66px; resize:vertical; }
+.btn-small { padding:7px 9px; font-size:12px; }
+.state-summary { display:grid; grid-template-columns:repeat(5,minmax(125px,1fr)); gap:10px; }
+.state-card { border:1px solid var(--borde); border-radius:10px; padding:13px; background:#f8fafc; }
+.state-card .state-name { font-size:11px; color:#64748b; font-weight:800; text-transform:uppercase; min-height:28px; }
+.state-card .state-count { font-size:25px; font-weight:800; margin-top:4px; color:var(--azul); }
+.photo-gallery { display:flex; flex-wrap:wrap; gap:6px; min-width:120px; }
+.photo-thumb { width:58px; height:48px; object-fit:cover; border:1px solid #cbd5e1; border-radius:7px; }
+.photo-item { display:flex; flex-direction:column; gap:3px; align-items:center; font-size:10px; }
+.history-btn { background:#edf2f7; color:#334155; border:1px solid #dbe3ed; }
+#mensajeAccion { position:sticky; top:8px; z-index:10; display:none; padding:11px 14px; border-radius:9px; margin-bottom:12px; font-size:13px; font-weight:700; }
+#mensajeAccion.ok { display:block; background:#dcfce7; color:#166534; }
+#mensajeAccion.error { display:block; background:#fee2e2; color:#991b1b; }
+.history-list { max-height:55vh; overflow:auto; display:grid; gap:9px; }
+.history-entry { border:1px solid var(--borde); border-radius:9px; padding:11px; background:#f8fafc; font-size:12px; }
 
 @media (max-width:1100px) {
   .filters { grid-template-columns:repeat(3,minmax(130px,1fr)); }
+  .cards { grid-template-columns:repeat(2,minmax(150px,1fr)); }
+  .state-summary { grid-template-columns:repeat(3,minmax(125px,1fr)); }
   .charts { grid-template-columns:1fr 1fr; }
   .charts .chart-box:last-child { grid-column:1/-1; }
 }
@@ -127,21 +118,21 @@ tbody tr:hover { background:#f6faff; }
   header h1 { font-size:19px; }
   .filters { grid-template-columns:1fr 1fr; }
   .cards { grid-template-columns:1fr 1fr; }
+  .state-summary { grid-template-columns:1fr 1fr; }
   .charts { grid-template-columns:1fr; }
   .charts .chart-box:last-child { grid-column:auto; }
   .map-wrap { height:350px; }
 }
 </style>
 </head>
-<body>
-
+<body data-admin="{{ 'true' if session.get('rol') == 'admin' else 'false' }}">
 <header>
   <div>
     <h1>📍 Panel de reportes de medidores</h1>
     <p>Consulta, analiza y exporta los reportes registrados</p>
   </div>
   <div class="header-actions">
-    <button class="btn-green" id="btnExportar" type="button">📊 Exportar Excel filtrado</button>
+    {% if session.get('rol') == 'admin' %}<button class="btn-green" id="btnExportar" type="button">📊 Exportar Excel filtrado</button>{% endif %}
     <a class="link-button btn-light" href="/">← Volver</a>
   </div>
 </header>
@@ -151,39 +142,22 @@ tbody tr:hover { background:#f6faff; }
     <div class="panel-title">Filtros de consulta</div>
     <div class="panel-body">
       <div class="filters">
-        <div class="field">
-          <label for="f_inicio">Fecha desde</label>
-          <input type="date" id="f_inicio">
-        </div>
-        <div class="field">
-          <label for="f_fin">Fecha hasta</label>
-          <input type="date" id="f_fin">
-        </div>
-        <div class="field">
-          <label for="f_usuario">Usuario</label>
-          <select id="f_usuario"><option value="">Todos los usuarios</option></select>
-        </div>
-        <div class="field">
-          <label for="f_condicion">Condición</label>
+        <div class="field"><label for="f_inicio">Fecha desde</label><input type="date" id="f_inicio"></div>
+        <div class="field"><label for="f_fin">Fecha hasta</label><input type="date" id="f_fin"></div>
+        <div class="field"><label for="f_usuario">Usuario</label><select id="f_usuario"><option value="">Todos los usuarios</option></select></div>
+        <div class="field"><label for="f_condicion">Condición</label>
           <select id="f_condicion">
             <option value="">Todas las condiciones</option>
-            <option value="CO">CO — Consumo cero</option>
-            <option value="AA">AA — Aire acondicionado</option>
-            <option value="MD">MD — Medidor dañado</option>
-            <option value="LD">LD — Línea directa</option>
-            <option value="AP24">AP24 — AP encendida 24 h</option>
-            <option value="IL">IL — Suministros ilegales</option>
+            <option value="CO">CO — Consumo cero</option><option value="AA">AA — Aire acondicionado</option>
+            <option value="MD">MD — Medidor dañado</option><option value="LD">LD — Línea directa</option>
+            <option value="AP24">AP24 — AP encendida 24 h</option><option value="IL">IL — Suministros ilegales</option>
             <option value="OT">OT — Otros</option>
           </select>
         </div>
-        <div class="field">
-          <label for="f_prioridad">Prioridad</label>
+        <div class="field"><label for="f_prioridad">Prioridad</label>
           <select id="f_prioridad">
-            <option value="">Todas las prioridades</option>
-            <option value="1">1 — Urgente</option>
-            <option value="2">2 — Alta</option>
-            <option value="3">3 — Media</option>
-            <option value="4">4 — Puede esperar</option>
+            <option value="">Todas las prioridades</option><option value="1">1 — Urgente</option>
+            <option value="2">2 — Alta</option><option value="3">3 — Media</option><option value="4">4 — Puede esperar</option>
           </select>
         </div>
         <div class="filter-actions">
@@ -196,43 +170,31 @@ tbody tr:hover { background:#f6faff; }
   </section>
 
   <section class="cards">
-    <div class="metric">
-      <div class="label">Reportes encontrados</div>
-      <div class="value" id="m_total">0</div>
-      <div class="note">Según los filtros aplicados</div>
-    </div>
-    <div class="metric">
-      <div class="label">Usuarios con reportes</div>
-      <div class="value" id="m_usuarios">0</div>
-      <div class="note">Usuarios distintos</div>
-    </div>
-    <div class="metric">
-      <div class="label">Prioridad 1</div>
-      <div class="value" id="m_p1">0</div>
-      <div class="note">Reportes urgentes</div>
-    </div>
-    <div class="metric">
-      <div class="label">Condición más reportada</div>
-      <div class="value" id="m_condicion" style="font-size:20px">—</div>
-      <div class="note" id="m_condicion_nota">Sin datos</div>
-    </div>
+    <div class="metric"><div class="label">Reportes encontrados</div><div class="value" id="m_total">0</div><div class="note">Según los filtros aplicados</div></div>
+    <div class="metric"><div class="label">Usuarios con reportes</div><div class="value" id="m_usuarios">0</div><div class="note">Usuarios distintos</div></div>
+    <div class="metric"><div class="label">Prioridad 1</div><div class="value" id="m_p1">0</div><div class="note">Reportes urgentes</div></div>
+    <div class="metric"><div class="label">Condición más reportada</div><div class="value" id="m_condicion" style="font-size:20px">—</div><div class="note" id="m_condicion_nota">Sin datos</div></div>
+    <div class="metric alert"><div class="label">Reportes sin atención</div><div class="value" id="m_sin_atencion">0</div><div class="note">Sin comentario de gestión, orden ni estado SAP</div></div>
+    <div class="metric success"><div class="label">Reportes con OS SAP</div><div class="value" id="m_con_os">0</div><div class="note">Reportes con número de orden registrado</div></div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">Estado de los reportes con OS SAP</div>
+    <div class="panel-body"><div class="state-summary">
+      <div class="state-card"><div class="state-name">Generada</div><div class="state-count" id="sap_generada">0</div></div>
+      <div class="state-card"><div class="state-name">Pendiente de asignar</div><div class="state-count" id="sap_pendiente">0</div></div>
+      <div class="state-card"><div class="state-name">En tratamiento</div><div class="state-count" id="sap_tratamiento">0</div></div>
+      <div class="state-card"><div class="state-name">Resuelta</div><div class="state-count" id="sap_resuelta">0</div></div>
+      <div class="state-card"><div class="state-name">Anulada</div><div class="state-count" id="sap_anulada">0</div></div>
+    </div><div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div></div>
   </section>
 
   <section class="panel">
     <div class="panel-title">Resumen estadístico de los reportes filtrados</div>
     <div class="panel-body charts">
-      <div class="chart-box">
-        <div class="field"><label>Reportes por usuario</label></div>
-        <canvas id="chartUsuarios"></canvas>
-      </div>
-      <div class="chart-box">
-        <div class="field"><label>Reportes por condición</label></div>
-        <canvas id="chartCondiciones"></canvas>
-      </div>
-      <div class="chart-box">
-        <div class="field"><label>Reportes por prioridad</label></div>
-        <canvas id="chartPrioridades"></canvas>
-      </div>
+      <div class="chart-box"><div class="field"><label>Reportes por usuario</label></div><canvas id="chartUsuarios"></canvas></div>
+      <div class="chart-box"><div class="field"><label>Reportes por condición</label></div><canvas id="chartCondiciones"></canvas></div>
+      <div class="chart-box"><div class="field"><label>Reportes por prioridad</label></div><canvas id="chartPrioridades"></canvas></div>
     </div>
   </section>
 
@@ -242,67 +204,52 @@ tbody tr:hover { background:#f6faff; }
   </section>
 
   <section class="panel">
-    <div class="panel-title">Detalle completo de reportes y seguimiento administrativo</div>
+    <div class="panel-title">Detalle completo de reportes</div>
     <div class="panel-body">
+      <div id="mensajeAccion" role="status" aria-live="polite"></div>
       <div class="table-tools">
         <div id="conteoTabla">0 reportes</div>
         <input id="busqueda" type="search" placeholder="Buscar en los resultados…" aria-label="Buscar en los resultados">
       </div>
-
-      <div class="table-scroll">
+      <div class="scroll-top" id="scrollTopTabla" aria-label="Desplazamiento horizontal de la tabla"><div class="scroll-top-inner" id="scrollTopInner"></div></div>
+      <div class="table-scroll" id="tableScroll">
         <table id="tablaReportes">
-          <thead>
-            <tr>
-              <th><button class="sort" data-sort="aparato">Aparato ↕</button></th>
-              <th><button class="sort" data-sort="mru">MRU ↕</button></th>
-              <th><button class="sort" data-sort="referencia">Referencia ↕</button></th>
-              <th><button class="sort" data-sort="condicion">Condición ↕</button></th>
-              <th><button class="sort" data-sort="prioridad">Prioridad ↕</button></th>
-              <th><button class="sort" data-sort="comentario">Comentario ↕</button></th>
-              <th>Latitud</th>
-              <th>Longitud</th>
-              <th><button class="sort" data-sort="usuario">Usuario ↕</button></th>
-              <th><button class="sort" data-sort="fecha">Fecha ↕</button></th>
-              <th>Fotografía</th>
-              <th>Acción del analista</th>
-              <th>Orden SAP</th>
-              <th>Estado SAP</th>
-              <th>Última actualización</th>
-            </tr>
-          </thead>
+          <thead><tr>
+            <th><button class="sort" data-sort="aparato">Aparato ↕</button></th>
+            <th><button class="sort" data-sort="mru">MRU ↕</button></th>
+            <th><button class="sort" data-sort="referencia">Referencia ↕</button></th>
+            <th><button class="sort" data-sort="condicion">Condición ↕</button></th>
+            <th><button class="sort" data-sort="prioridad">Prioridad ↕</button></th>
+            <th><button class="sort" data-sort="comentario">Comentario ↕</button></th>
+            <th>Latitud</th><th>Longitud</th>
+            <th><button class="sort" data-sort="usuario">Usuario ↕</button></th>
+            <th><button class="sort" data-sort="fecha">Fecha ↕</button></th>
+            <th>Fotografía</th>
+            <th>Acción del analista</th>
+            <th>Orden SAP</th>
+            <th>Estado SAP</th>
+            <th>Última actualización</th>
+          </tr></thead>
           <tbody id="tablaBody"></tbody>
         </table>
       </div>
-
-      <div class="footer-note">
-        Selecciona un encabezado con ↕ para ordenar. Los filtros se aplican a la exportación de Excel.
-      </div>
-
-      
+      <div class="footer-note">Selecciona el encabezado de una columna con ↕ para ordenar. Los filtros también se aplican a la exportación de Excel.</div>
     </div>
   </section>
 </main>
+<div id="modalHistorial" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;padding:20px;align-items:center;justify-content:center;">
+  <div style="width:min(700px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 20px 60px #0003;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;"><strong id="tituloHistorial">Historial de gestiones</strong><button class="btn-light" type="button" onclick="cerrarHistorial()">Cerrar</button></div>
+    <div id="contenidoHistorial" class="history-list">Cargando historial…</div>
+  </div>
+</div>
 
 <script>
-"use strict";
-
 const etiquetasCondicion = {
-  CO:"CO — Consumo cero",
-  AA:"AA — Aire acondicionado",
-  MD:"MD — Medidor dañado",
-  LD:"LD — Línea directa",
-  AP24:"AP24 — AP encendida 24 h",
-  IL:"IL — Suministros ilegales",
-  OT:"OT — Otros"
+  CO:"CO — Consumo cero", AA:"AA — Aire acondicionado", MD:"MD — Medidor dañado",
+  LD:"LD — Línea directa", AP24:"AP24 — AP encendida 24 h", IL:"IL — Suministros ilegales", OT:"OT — Otros"
 };
-
-const etiquetasPrioridad = {
-  "1":"1 — Urgente",
-  "2":"2 — Alta",
-  "3":"3 — Media",
-  "4":"4 — Puede esperar"
-};
-
+const etiquetasPrioridad = {"1":"1 — Urgente","2":"2 — Alta","3":"3 — Media","4":"4 — Puede esperar"};
 const etiquetasEstadoSAP = {
   "Generada":"Generada",
   "Pendiente de asignar":"Pendiente de asignar",
@@ -310,11 +257,7 @@ const etiquetasEstadoSAP = {
   "Resuelta":"Resuelta",
   "Anulada":"Anulada"
 };
-
-function estadoSAPTexto(estado) {
-  return etiquetasEstadoSAP[estado] || "";
-}
-
+function estadoSAPTexto(estado) { return etiquetasEstadoSAP[estado] || ""; }
 function claseEstadoSAP(estado) {
   const clases = {
     "Generada":"sap-generada",
@@ -327,11 +270,7 @@ function claseEstadoSAP(estado) {
 }
 
 const map = L.map("map").setView([13.7, -89.2], 10);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-  maxZoom:19,
-  attribution:"© OpenStreetMap"
-}).addTo(map);
-
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
 const markers = L.layerGroup().addTo(map);
 
 let reportes = [];
@@ -339,58 +278,36 @@ let reportesFiltrados = [];
 let orden = {campo:"fecha", direccion:-1};
 let charts = {};
 
-// Borradores temporales de seguimiento; todavía no se envían al servidor.
-const borradoresSeguimiento = new Map();
-
 function textoSeguro(valor) {
-  return String(valor ?? "").replace(/[&<>"']/g, c => ({
-    "&":"&amp;",
-    "<":"&lt;",
-    ">":"&gt;",
-    '"':"&quot;",
-    "'":"&#39;"
-  }[c]));
+  return String(valor ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
-
-function condicionTexto(v) {
-  return etiquetasCondicion[v] || (v || "Sin condición");
-}
-
-function prioridadTexto(v) {
-  return etiquetasPrioridad[String(v)] ||
-    (v == null || v === "" ? "Sin prioridad" : String(v));
-}
-
+function condicionTexto(v) { return etiquetasCondicion[v] || (v || "Sin condición"); }
+function prioridadTexto(v) { return etiquetasPrioridad[String(v)] || (v == null || v === "" ? "Sin prioridad" : String(v)); }
 function fotoUrl(foto) {
   if (!foto) return "";
   const s = String(foto);
   if (/^https?:\/\//i.test(s)) return s;
   return "/static/" + s.replace(/^\/?static\//, "").replace(/^\/+/, "");
 }
-
+function fotosReporte(r) {
+  let lista = [];
+  if (Array.isArray(r.fotos)) lista = r.fotos;
+  else if (typeof r.fotos === "string" && r.fotos.trim()) {
+    try { const parsed = JSON.parse(r.fotos); if (Array.isArray(parsed)) lista = parsed; } catch (_) {}
+  }
+  if (!lista.length && r.foto) lista = [r.foto];
+  if (r.foto && !lista.includes(r.foto)) lista.unshift(r.foto);
+  return [...new Set(lista.filter(Boolean))].slice(0,3).map(fotoUrl);
+}
+function fotosHtml(r) {
+  const fotos = fotosReporte(r);
+  if (!fotos.length) return "—";
+  return `<div class="photo-gallery">${fotos.map((url,i)=>`<a class="photo-item" href="${textoSeguro(url)}" target="_blank" rel="noopener" title="Abrir fotografía ${i+1}"><img class="photo-thumb" src="${textoSeguro(url)}" alt="Foto ${i+1}" loading="lazy"><span>Foto ${i+1}</span></a>`).join("")}</div>`;
+}
 function formatoFecha(v) {
   if (!v) return "";
-
-  // Interpretar la fecha y convertirla a la hora de El Salvador.
-  const fecha = new Date(v);
-
-  if (Number.isNaN(fecha.getTime())) {
-    return String(v);
-  }
-
-  return new Intl.DateTimeFormat("es-SV", {
-    timeZone: "America/El_Salvador",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false
-  }).format(fecha).replace(",", "");
+  return String(v).replace("T"," ").replace(/(\.\d+)?Z$/, "");
 }
-
-
 function filtrosActuales() {
   return {
     inicio:document.getElementById("f_inicio").value,
@@ -400,77 +317,35 @@ function filtrosActuales() {
     prioridad:document.getElementById("f_prioridad").value
   };
 }
-
 function urlConFiltros(base) {
   const p = new URLSearchParams();
-  Object.entries(filtrosActuales()).forEach(([k,v]) => {
-    if (v) p.set(k,v);
-  });
+  Object.entries(filtrosActuales()).forEach(([k,v]) => { if (v) p.set(k,v); });
   return base + (p.toString() ? "?" + p.toString() : "");
 }
-
 function poblarUsuarios(data) {
   const select = document.getElementById("f_usuario");
   const seleccionado = select.value;
-
-  const usuarios = [...new Set(
-    data.map(r => String(r.usuario || "").trim()).filter(Boolean)
-  )].sort((a,b) => a.localeCompare(b,"es",{numeric:true}));
-
+  const usuarios = [...new Set(data.map(r => String(r.usuario || "").trim()).filter(Boolean))]
+    .sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
   select.innerHTML = '<option value="">Todos los usuarios</option>' +
-    usuarios.map(u =>
-      `<option value="${textoSeguro(u)}">${textoSeguro(u)}</option>`
-    ).join("");
-
+    usuarios.map(u=>`<option value="${textoSeguro(u)}">${textoSeguro(u)}</option>`).join("");
   if (usuarios.includes(seleccionado)) select.value = seleccionado;
 }
-
 function fechaISO(valor) {
   if (!valor) return "";
   const s = String(valor).trim();
-
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-
   m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) return `${m[3]}-${m[2].padStart(2,"0")}-${m[1].padStart(2,"0")}`;
-
+  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
   const d = new Date(s);
   if (!Number.isNaN(d.getTime())) {
-    return [
-      d.getUTCFullYear(),
-      String(d.getUTCMonth()+1).padStart(2,"0"),
-      String(d.getUTCDate()).padStart(2,"0")
-    ].join("-");
+    return [d.getUTCFullYear(),String(d.getUTCMonth()+1).padStart(2,"0"),String(d.getUTCDate()).padStart(2,"0")].join("-");
   }
   return "";
 }
-
-// Identificador provisional solo para mantener borradores en esta página.
-// El backend deberá utilizar una clave única y estable de la base de datos.
-function claveReporte(r) {
-  return String(r.id);
-}
-
-function valorSeguimiento(r, campo) {
-  const borrador = borradoresSeguimiento.get(claveReporte(r));
-
-  if (borrador && Object.prototype.hasOwnProperty.call(borrador,campo)) {
-    return borrador[campo];
-  }
-
-  const campos = {
-    comentario:"seguimiento_comentario",
-    orden:"orden_sap",
-    estado:"estado_sap"
-  };
-
-  return r[campos[campo]] ?? "";
-}
-
 function aplicarFiltrosLocales() {
   const f = filtrosActuales();
-
   reportesFiltrados = reportes.filter(r => {
     const fecha = fechaISO(r.fecha);
     return (!f.inicio || fecha >= f.inicio) &&
@@ -479,76 +354,58 @@ function aplicarFiltrosLocales() {
       (!f.condicion || String(r.condicion || "") === f.condicion) &&
       (!f.prioridad || String(r.prioridad ?? "") === f.prioridad);
   });
-
   actualizarVista();
 }
-
 function contarPor(data, campo, transform=v=>String(v || "Sin dato")) {
   const c = {};
-  data.forEach(r => {
-    const k = transform(r[campo]);
-    c[k] = (c[k] || 0) + 1;
-  });
-  return Object.entries(c).sort((a,b) => b[1]-a[1]);
+  data.forEach(r => { const k=transform(r[campo]); c[k]=(c[k]||0)+1; });
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]);
 }
-
 function actualizarChart(id, tipo, labels, values, horizontal=false) {
   if (charts[id]) charts[id].destroy();
-
   const ctx = document.getElementById(id);
   charts[id] = new Chart(ctx, {
     type:tipo,
-    data:{
-      labels,
-      datasets:[{label:"Reportes", data:values, borderWidth:1}]
-    },
+    data:{labels, datasets:[{label:"Reportes",data:values,borderWidth:1}]},
     options:{
-      responsive:true,
-      maintainAspectRatio:true,
-      indexAxis:horizontal ? "y" : "x",
-      plugins:{
-        legend:{display:tipo==="doughnut"},
-        tooltip:{enabled:true}
-      },
-      scales:tipo==="bar"
-        ? {y:{beginAtZero:true,ticks:{precision:0}}}
-        : {}
+      responsive:true, maintainAspectRatio:true,
+      indexAxis:horizontal?"y":"x",
+      plugins:{legend:{display:tipo==="doughnut"}, tooltip:{enabled:true}},
+      scales:tipo==="bar"?{y:{beginAtZero:true,ticks:{precision:0}}}:{}
     }
   });
 }
-
 function actualizarResumen(data) {
   document.getElementById("m_total").textContent = data.length.toLocaleString("es");
-  document.getElementById("m_usuarios").textContent =
-    new Set(data.map(r=>r.usuario).filter(Boolean)).size.toLocaleString("es");
-  document.getElementById("m_p1").textContent =
-    data.filter(r=>String(r.prioridad)==="1").length.toLocaleString("es");
-
+  document.getElementById("m_usuarios").textContent = new Set(data.map(r=>r.usuario).filter(Boolean)).size.toLocaleString("es");
+  document.getElementById("m_p1").textContent = data.filter(r=>String(r.prioridad)==="1").length.toLocaleString("es");
   const condiciones = contarPor(data,"condicion",condicionTexto);
-  document.getElementById("m_condicion").textContent =
-    condiciones.length ? condiciones[0][0] : "—";
-  document.getElementById("m_condicion_nota").textContent =
-    condiciones.length ? `${condiciones[0][1]} reporte(s)` : "Sin datos";
-
+  document.getElementById("m_condicion").textContent = condiciones.length ? condiciones[0][0] : "—";
+  document.getElementById("m_condicion_nota").textContent = condiciones.length ? `${condiciones[0][1]} reporte(s)` : "Sin datos";
+  const sinAtencion = data.filter(r => !String(r.seguimiento_comentario || "").trim() && !String(r.orden_sap || "").trim() && !String(r.estado_sap || "").trim()).length;
+  const conOS = data.filter(r => String(r.orden_sap || "").trim()).length;
+  document.getElementById("m_sin_atencion").textContent = sinAtencion.toLocaleString("es");
+  document.getElementById("m_con_os").textContent = conOS.toLocaleString("es");
+  const estados = [
+    ["sap_generada","Generada"],
+    ["sap_pendiente","Pendiente de asignar"],
+    ["sap_tratamiento","En tratamiento"],
+    ["sap_resuelta","Resuelta"],
+    ["sap_anulada","Anulada"]
+  ];
+  estados.forEach(([id,estado]) => {
+    const n = data.filter(r => String(r.orden_sap || "").trim() && String(r.estado_sap || "").trim() === estado).length;
+    document.getElementById(id).textContent = n.toLocaleString("es");
+  });
   const usuarios = contarPor(data,"usuario",v=>v || "Sin usuario").slice(0,12);
-  actualizarChart("chartUsuarios","bar",
-    usuarios.map(x=>x[0]), usuarios.map(x=>x[1]), true);
-
+  actualizarChart("chartUsuarios","bar",usuarios.map(x=>x[0]),usuarios.map(x=>x[1]),true);
   const cond = contarPor(data,"condicion",condicionTexto);
-  actualizarChart("chartCondiciones","doughnut",
-    cond.map(x=>x[0]), cond.map(x=>x[1]));
-
-  const prios = ["1","2","3","4"].map(p=>[
-    etiquetasPrioridad[p],
-    data.filter(r=>String(r.prioridad)===p).length
-  ]);
-  actualizarChart("chartPrioridades","bar",
-    prios.map(x=>x[0]), prios.map(x=>x[1]));
+  actualizarChart("chartCondiciones","doughnut",cond.map(x=>x[0]),cond.map(x=>x[1]));
+  const prios = ["1","2","3","4"].map(p=>[etiquetasPrioridad[p],data.filter(r=>String(r.prioridad)===p).length]);
+  actualizarChart("chartPrioridades","bar",prios.map(x=>x[0]),prios.map(x=>x[1]));
 }
-
 function popupHtml(r) {
-  const foto = fotoUrl(r.foto);
-
+  const fotos = fotosReporte(r);
   return `<div style="max-width:260px">
     <b>📍 Reporte de medidor</b><br>
     <b>Aparato:</b> ${textoSeguro(r.aparato)}<br>
@@ -559,80 +416,46 @@ function popupHtml(r) {
     <b>Usuario:</b> ${textoSeguro(r.usuario)}<br>
     <b>Fecha:</b> ${textoSeguro(formatoFecha(r.fecha))}<br>
     <b>Comentario:</b> ${textoSeguro(r.comentario)}
-    ${foto
-      ? `<br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener">Abrir fotografía</a>
-         <br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener">
-         <img src="${textoSeguro(foto)}" alt="Fotografía del reporte"
-         style="width:100%;max-width:220px;border-radius:7px;margin-top:6px"></a>`
-      : ""}
+    ${fotos.length ? `<br><b>Fotografías (${fotos.length}):</b>${fotos.map((foto,i)=>`<br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener">Abrir foto ${i+1}</a><br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener"><img src="${textoSeguro(foto)}" alt="Fotografía ${i+1}" style="width:100%;max-width:220px;border-radius:7px;margin-top:5px"></a>`).join("")}` : ""}
   </div>`;
 }
-
 function actualizarMapa(data) {
   markers.clearLayers();
   const bounds = [];
-
   data.forEach(r => {
-    const lat = Number(r.latitud);
-    const lon = Number(r.longitud);
-
+    const lat=Number(r.latitud), lon=Number(r.longitud);
     if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat===0 || lon===0) return;
-
-    const marker = L.marker([lat,lon]).addTo(markers);
+    const marker=L.marker([lat,lon]).addTo(markers);
     marker.bindPopup(popupHtml(r));
     bounds.push([lat,lon]);
   });
-
   if (bounds.length) map.fitBounds(bounds,{padding:[25,25],maxZoom:16});
   else map.setView([13.7,-89.2],10);
-
-  setTimeout(() => map.invalidateSize(),100);
+  setTimeout(()=>map.invalidateSize(),100);
 }
-
-function celda(valor) {
-  return `<td>${textoSeguro(valor)}</td>`;
-}
-
+function celda(valor) { return `<td>${textoSeguro(valor)}</td>`; }
 function actualizarTabla(data) {
-  const busqueda = document.getElementById("busqueda")
-    .value.trim().toLocaleLowerCase("es");
-
-  const visibles = data.filter(r => [
-    r.aparato, r.mru, r.referencia,
-    condicionTexto(r.condicion), prioridadTexto(r.prioridad),
-    r.comentario, r.latitud, r.longitud, r.usuario,
-    formatoFecha(r.fecha), r.foto,
-    valorSeguimiento(r,"comentario"),
-    valorSeguimiento(r,"orden"),
-    valorSeguimiento(r,"estado"),
-    r.seguimiento_actualizado
-  ].some(v => String(v ?? "").toLocaleLowerCase("es").includes(busqueda)));
-
-  visibles.sort((a,b) => {
-    const x = a[orden.campo] ?? "";
-    const y = b[orden.campo] ?? "";
+  const busqueda=document.getElementById("busqueda").value.trim().toLocaleLowerCase("es");
+  const visibles=data.filter(r => [
+    r.aparato,r.mru,r.referencia,condicionTexto(r.condicion),prioridadTexto(r.prioridad),
+    r.comentario,r.latitud,r.longitud,r.usuario,formatoFecha(r.fecha),r.foto,
+    r.seguimiento_comentario,r.orden_sap,r.estado_sap,r.seguimiento_actualizado
+  ].some(v=>String(v ?? "").toLocaleLowerCase("es").includes(busqueda)));
+  visibles.sort((a,b)=>{
+    const x=a[orden.campo] ?? "", y=b[orden.campo] ?? "";
     let cmp;
-
-    if (orden.campo==="fecha") cmp = String(x).localeCompare(String(y));
-    else if (orden.campo==="prioridad") cmp = (Number(x)||999)-(Number(y)||999);
-    else cmp = String(x).localeCompare(String(y),"es",{numeric:true,sensitivity:"base"});
-
-    return cmp * orden.direccion;
+    if (orden.campo==="fecha") cmp=String(x).localeCompare(String(y));
+    else if (orden.campo==="prioridad") cmp=(Number(x)||999)-(Number(y)||999);
+    else cmp=String(x).localeCompare(String(y),"es",{numeric:true,sensitivity:"base"});
+    return cmp*orden.direccion;
   });
-
-  const tbody = document.getElementById("tablaBody");
-
+  const tbody=document.getElementById("tablaBody");
   if (!visibles.length) {
-    tbody.innerHTML = '<tr><td class="empty" colspan="15">No hay reportes que coincidan con la consulta.</td></tr>';
+    tbody.innerHTML='<tr><td class="empty" colspan="15">No hay reportes que coincidan con la consulta.</td></tr>';
   } else {
-    tbody.innerHTML = visibles.map(r => {
-      const foto = fotoUrl(r.foto);
-      const prioridad = String(r.prioridad ?? "");
-      const clave = textoSeguro(claveReporte(r));
-      const comentarioSeguimiento = valorSeguimiento(r,"comentario");
-      const ordenSAP = valorSeguimiento(r,"orden");
-      const estadoSAP = valorSeguimiento(r,"estado");
-
+    tbody.innerHTML=visibles.map(r=>{
+      const prioridad=String(r.prioridad ?? "");
+      const esAdmin = document.body.dataset.admin === "true";
       return `<tr>
         ${celda(r.aparato)}
         ${celda(r.mru)}
@@ -644,267 +467,119 @@ function actualizarTabla(data) {
         ${celda(r.longitud)}
         ${celda(r.usuario)}
         ${celda(formatoFecha(r.fecha))}
-        <td>${foto ? `<a class="photo-link" href="${textoSeguro(foto)}" target="_blank" rel="noopener">Ver foto</a>` : "—"}</td>
-
-        <td class="col-seguimiento">
-          <div class="seguimiento-editor">
-            <textarea
-              data-seguimiento="comentario"
-              data-reporte="${clave}"
-              aria-label="Acción del analista"
-              placeholder="Registrar acción o comentario..."
-            >${textoSeguro(comentarioSeguimiento)}</textarea>
-          </div>
-        </td>
-
-        <td class="col-seguimiento">
-          <div class="seguimiento-editor">
-            <input
-              type="text"
-              data-seguimiento="orden"
-              data-reporte="${clave}"
-              aria-label="Orden SAP"
-              placeholder="Número de orden SAP"
-              value="${textoSeguro(ordenSAP)}"
-              ${r.orden_sap ? "disabled" : ""}
-            >
-            <span class="nota-campo">${
-              r.orden_sap
-                ? "Orden registrada; no editable."
-                : "Se registrará una sola vez al conectar el guardado."
-            }</span>
-          </div>
-        </td>
-
-        <td class="col-seguimiento">
-          <div class="seguimiento-editor">
-            <select
-              data-seguimiento="estado"
-              data-reporte="${clave}"
-              aria-label="Estado SAP"
-            >
-              <option value="">Seleccionar estado…</option>
-              ${Object.keys(etiquetasEstadoSAP).map(estado =>
-                `<option value="${textoSeguro(estado)}" ${estadoSAP===estado ? "selected" : ""}>${textoSeguro(estado)}</option>`
-              ).join("")}
-            </select>
-          </div>
-        </td>
-
-        <td class="col-seguimiento">
-          <div class="seguimiento-editor">
-            <span>${r.seguimiento_actualizado
-              ? textoSeguro(formatoFecha(r.seguimiento_actualizado))
-              : "Sin actualizar"}</span>
-            <button
-  type="button"
-  class="btn-guardar-seguimiento"
-  data-guardar-reporte="${textoSeguro(r.id)}"
->Guardar seguimiento</button>
-<span class="nota-campo">Guarda los cambios en la base de datos.</span>              
-          </div>
-        </td>
+        <td>${fotosHtml(r)}</td>
+        <td class="col-seguimiento">${esAdmin ? `<div class="followup-editor"><textarea id="seg_${r.id}" aria-label="Seguimiento del reporte ${r.id}" placeholder="Acción o comentario del analista">${textoSeguro(r.seguimiento_comentario || "")}</textarea><input id="sap_${r.id}" aria-label="Orden SAP del reporte ${r.id}" placeholder="Número de orden SAP" value="${textoSeguro(r.orden_sap || "")}"><select id="estado_${r.id}" aria-label="Estado SAP del reporte ${r.id}"><option value="">Seleccionar estado SAP</option>${Object.keys(etiquetasEstadoSAP).map(e=>`<option value="${textoSeguro(e)}" ${r.estado_sap===e?"selected":""}>${textoSeguro(e)}</option>`).join("")}</select><button class="btn-primary btn-small" type="button" onclick="guardarSeguimiento(${Number(r.id)})">Guardar seguimiento</button><button class="history-btn btn-small" type="button" onclick="verHistorial(${Number(r.id)})">Ver historial</button></div>` : (r.seguimiento_comentario ? textoSeguro(r.seguimiento_comentario) : '<span class="seguimiento-vacio">Sin seguimiento</span>')}</td>
+        <td>${r.orden_sap ? textoSeguro(r.orden_sap) : "—"}</td>
+        <td>${r.estado_sap ? `<span class="sap-estado ${claseEstadoSAP(r.estado_sap)}">${textoSeguro(estadoSAPTexto(r.estado_sap) || r.estado_sap)}</span>` : "—"}</td>
+        <td>${r.seguimiento_actualizado ? textoSeguro(formatoFecha(r.seguimiento_actualizado)) : "—"}</td>
       </tr>`;
     }).join("");
   }
-
-  document.getElementById("conteoTabla").textContent =
-    `Mostrando ${visibles.length.toLocaleString("es")} de ${data.length.toLocaleString("es")} reportes`;
+  document.getElementById("conteoTabla").textContent=`Mostrando ${visibles.length.toLocaleString("es")} de ${data.length.toLocaleString("es")} reportes`;
+  configurarScrollSuperior();
 }
-
 function actualizarVista() {
   actualizarResumen(reportesFiltrados);
   actualizarMapa(reportesFiltrados);
   actualizarTabla(reportesFiltrados);
-  document.getElementById("estadoCarga").textContent =
-    `Consulta lista: ${reportesFiltrados.length.toLocaleString("es")} reporte(s).`;
+  document.getElementById("estadoCarga").textContent=`Consulta lista: ${reportesFiltrados.length.toLocaleString("es")} reporte(s).`;
 }
-
 async function cargarReportes() {
-  const estado = document.getElementById("estadoCarga");
-  estado.textContent = "Cargando reportes…";
-  document.getElementById("btnFiltrar").disabled = true;
-
+  const estado=document.getElementById("estadoCarga");
+  estado.textContent="Cargando reportes…";
+  document.getElementById("btnFiltrar").disabled=true;
   try {
-    const response = await fetch("/api/reportes");
+    const response=await fetch("/api/reportes");
     if (!response.ok) throw new Error(`El servidor respondió ${response.status}.`);
-
-    const data = await response.json();
-    if (!Array.isArray(data)) {
-      throw new Error(data.error || "La respuesta del servidor no tiene el formato esperado.");
-    }
-
-    reportes = data;
+    const data=await response.json();
+    if (!Array.isArray(data)) throw new Error(data.error || "La respuesta del servidor no tiene el formato esperado.");
+    reportes=data;
     poblarUsuarios(reportes);
     aplicarFiltrosLocales();
   } catch (e) {
     console.error(e);
-    estado.textContent = "No se pudieron cargar los reportes. Revisa la sesión y la conexión con el servidor.";
-    document.getElementById("tablaBody").innerHTML =
-      `<tr><td class="empty" colspan="15">${textoSeguro(e.message)}</td></tr>`;
+    estado.textContent="No se pudieron cargar los reportes. Revisa la sesión y la conexión con el servidor.";
+    document.getElementById("tablaBody").innerHTML=`<tr><td class="empty" colspan="15">${textoSeguro(e.message)}</td></tr>`;
   } finally {
-    document.getElementById("btnFiltrar").disabled = false;
+    document.getElementById("btnFiltrar").disabled=false;
   }
 }
-
-function exportar() {
-  window.location.href = urlConFiltros("/admin/exportar_reportes");
+function mostrarMensaje(texto, tipo="ok") {
+  const el=document.getElementById("mensajeAccion");
+  el.className=tipo; el.textContent=texto; el.style.display="block";
+  window.setTimeout(()=>{el.style.display="none";},6000);
 }
-
-// Captura los borradores de los campos editables.
-// Estos datos solo viven en memoria mientras la página permanezca abierta.
-function registrarBorrador(control) {
-  const clave = control.dataset.reporte;
-  const campo = control.dataset.seguimiento;
-
-  if (!clave || !campo) return;
-
-  const borrador = borradoresSeguimiento.get(clave) || {};
-  borrador[campo] = control.value;
-  borradoresSeguimiento.set(clave,borrador);
-
-  const estado = document.getElementById("estadoCarga");
-  estado.textContent = "Hay cambios de seguimiento temporales sin guardar en la base de datos.";
-}
-
-async function guardarSeguimiento(button) {
-  const fila = button.closest("tr");
-
-  if (!fila) return;
-
-  const comentario = fila.querySelector(
-    '[data-seguimiento="comentario"]'
-  );
-  const ordenSAP = fila.querySelector(
-    '[data-seguimiento="orden"]'
-  );
-  const estadoSAP = fila.querySelector(
-    '[data-seguimiento="estado"]'
-  );
-
-  const id = button.dataset.guardarReporte;
-
-  if (!id || !comentario || !ordenSAP || !estadoSAP) {
-    alert("No se pudieron identificar los datos del reporte.");
-    return;
-  }
-
-  if (!estadoSAP.value) {
-    alert("Selecciona un Estado SAP antes de guardar.");
-    estadoSAP.focus();
-    return;
-  }
-
-  const confirmar = confirm(
-    "¿Deseas guardar el seguimiento de este reporte?"
-  );
-
-  if (!confirmar) return;
-
-  button.disabled = true;
-  const textoOriginal = button.textContent;
-  button.textContent = "Guardando…";
-
+async function guardarSeguimiento(id) {
+  const boton = document.querySelector(`button[onclick="guardarSeguimiento(${id})"]`);
+  const payload = {
+    seguimiento_comentario: document.getElementById(`seg_${id}`)?.value || "",
+    orden_sap: document.getElementById(`sap_${id}`)?.value || "",
+    estado_sap: document.getElementById(`estado_${id}`)?.value || ""
+  };
+  if (!payload.estado_sap) { mostrarMensaje("Selecciona un estado SAP antes de guardar el seguimiento.","error"); return; }
+  if (boton) { boton.disabled=true; boton.textContent="Guardando…"; }
   try {
-    const respuesta = await fetch(
-      `/api/reportes/${encodeURIComponent(id)}/seguimiento`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          seguimiento_comentario: comentario.value.trim(),
-          orden_sap: ordenSAP.value.trim(),
-          estado_sap: estadoSAP.value
-        })
-      }
-    );
-
-    const resultado = await respuesta.json();
-
-    if (!respuesta.ok) {
-      throw new Error(
-        resultado.error || "No se pudo guardar el seguimiento."
-      );
-    }
-
-    // Actualizar los datos en pantalla sin perder el seguimiento.
-    const reporte = reportes.find(
-      r => String(r.id) === String(id)
-    );
-
-    if (reporte) {
-      reporte.seguimiento_comentario = comentario.value.trim();
-      reporte.orden_sap = ordenSAP.value.trim() || null;
-      reporte.estado_sap = estadoSAP.value;
-      reporte.seguimiento_actualizado = new Date().toISOString();
-    }
-
-    borradoresSeguimiento.delete(String(id));
-
-    alert("Seguimiento guardado correctamente.");
-
-    aplicarFiltrosLocales();
-
-  } catch (error) {
-    console.error("Error guardando seguimiento:", error);
-    alert(error.message || "Ocurrió un error al guardar.");
+    const response=await fetch(`/api/reportes/${id}/seguimiento`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+    const data=await response.json();
+    if (!response.ok) throw new Error(data.error || `Error ${response.status}`);
+    mostrarMensaje(data.mensaje || "Seguimiento guardado correctamente.");
+    await cargarReportes();
+  } catch (e) {
+    mostrarMensaje(e.message || "No se pudo guardar el seguimiento.","error");
   } finally {
-    button.disabled = false;
-    button.textContent = textoOriginal;
+    if (boton) { boton.disabled=false; boton.textContent="Guardar seguimiento"; }
   }
 }
-
-document.getElementById("tablaBody").addEventListener("input", e => {
-  const control = e.target.closest("[data-seguimiento]");
-  if (control) registrarBorrador(control);
-});
-
-document.getElementById("tablaBody").addEventListener("change", e => {
-  const control = e.target.closest("[data-seguimiento]");
-  if (control) registrarBorrador(control);
-});
-document.getElementById("tablaBody").addEventListener("click", e => {
-  const button = e.target.closest("[data-guardar-reporte]");
-
-  if (button) {
-    guardarSeguimiento(button);
+async function verHistorial(id) {
+  const modal=document.getElementById("modalHistorial");
+  const contenido=document.getElementById("contenidoHistorial");
+  document.getElementById("tituloHistorial").textContent=`Historial de gestiones · Reporte ${id}`;
+  contenido.textContent="Cargando historial…"; modal.style.display="flex";
+  try {
+    const response=await fetch(`/api/reportes/${id}/historial`);
+    const data=await response.json();
+    if (!response.ok) throw new Error(data.error || "No se pudo consultar el historial.");
+    if (!Array.isArray(data) || !data.length) { contenido.innerHTML='<div class="history-entry">Este reporte aún no tiene gestiones registradas.</div>'; return; }
+    contenido.innerHTML=data.map(h=>`<div class="history-entry"><strong>${textoSeguro(h.accion || "Gestión")}</strong><div style="margin-top:5px;color:#475569">Usuario: ${textoSeguro(h.usuario_gestion || "—")} · ${textoSeguro(formatoFecha(h.fecha_gestion) || "Sin fecha")}</div><div style="margin-top:7px">${textoSeguro(h.comentario || "Sin comentario")}</div><div style="margin-top:5px">Orden SAP: ${textoSeguro(h.orden_sap || "—")} · Estado: ${textoSeguro(h.estado_sap || "—")}</div></div>`).join("");
+  } catch(e) { contenido.textContent=e.message || "Error consultando historial."; }
+}
+function cerrarHistorial() { document.getElementById("modalHistorial").style.display="none"; }
+let scrollSuperiorConfigurado=false;
+function configurarScrollSuperior() {
+  const superior=document.getElementById("scrollTopTabla");
+  const interior=document.getElementById("scrollTopInner");
+  const tabla=document.getElementById("tableScroll");
+  if (!superior || !interior || !tabla) return;
+  const ajustar=()=>{interior.style.width=tabla.scrollWidth+"px"; superior.scrollLeft=tabla.scrollLeft;};
+  if (!scrollSuperiorConfigurado) {
+    let sincronizando=false;
+    superior.addEventListener("scroll",()=>{if(sincronizando)return;sincronizando=true;tabla.scrollLeft=superior.scrollLeft;sincronizando=false;});
+    tabla.addEventListener("scroll",()=>{if(sincronizando)return;sincronizando=true;superior.scrollLeft=tabla.scrollLeft;sincronizando=false;});
+    if (window.ResizeObserver) new ResizeObserver(ajustar).observe(tabla);
+    window.addEventListener("resize",ajustar);
+    scrollSuperiorConfigurado=true;
   }
-});
-document.getElementById("btnFiltrar").addEventListener("click", aplicarFiltrosLocales);
-
-document.getElementById("btnLimpiar").addEventListener("click", () => {
-  ["f_inicio","f_fin","f_usuario","f_condicion","f_prioridad","busqueda"]
-    .forEach(id => document.getElementById(id).value = "");
+  ajustar();
+}
+function exportar() {
+  window.location.href=urlConFiltros("/admin/exportar_reportes");
+}
+document.getElementById("btnFiltrar").addEventListener("click",aplicarFiltrosLocales);
+document.getElementById("btnLimpiar").addEventListener("click",()=>{
+  ["f_inicio","f_fin","f_usuario","f_condicion","f_prioridad","busqueda"].forEach(id=>document.getElementById(id).value="");
   aplicarFiltrosLocales();
 });
-
-document.getElementById("btnExportar").addEventListener("click",exportar);
-
-document.getElementById("busqueda").addEventListener("input", () => {
+const btnExportar=document.getElementById("btnExportar");
+if (btnExportar) btnExportar.addEventListener("click",exportar);
+document.getElementById("busqueda").addEventListener("input",()=>actualizarTabla(reportesFiltrados));
+document.querySelectorAll("button.sort").forEach(btn=>btn.addEventListener("click",()=>{
+  const campo=btn.dataset.sort;
+  if (orden.campo===campo) orden.direccion*=-1;
+  else {orden.campo=campo; orden.direccion=campo==="fecha"?-1:1;}
+  document.querySelectorAll("button.sort").forEach(b=>b.textContent=b.textContent.replace(/[↑↓↕]/g,"↕"));
+  btn.textContent=btn.textContent.replace("↕",orden.direccion===1?"↑":"↓");
   actualizarTabla(reportesFiltrados);
-});
-
-document.querySelectorAll("button.sort").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const campo = btn.dataset.sort;
-
-    if (orden.campo===campo) orden.direccion *= -1;
-    else {
-      orden.campo = campo;
-      orden.direccion = campo==="fecha" ? -1 : 1;
-    }
-
-    document.querySelectorAll("button.sort").forEach(b => {
-      b.textContent = b.textContent.replace(/[↑↓↕]/g,"↕");
-    });
-
-    btn.textContent = btn.textContent.replace("↕",orden.direccion===1 ? "↑" : "↓");
-    actualizarTabla(reportesFiltrados);
-  });
-});
-
+}));
 cargarReportes();
 </script>
 </body>
