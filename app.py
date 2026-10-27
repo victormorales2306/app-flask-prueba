@@ -7,6 +7,7 @@ from functools import wraps
 import csv
 import io
 import os
+import json
 import cloudinary
 import cloudinary.uploader
 from dotenv import load_dotenv
@@ -692,7 +693,6 @@ def obtener_reportes():
     finally:
         conn.close()
 
-
 # ---------------- GUARDAR REPORTE ----------------
 
 @app.route("/api/reportes", methods=["POST"])
@@ -718,36 +718,16 @@ def api_reportes():
         longitud = data.get("longitud")
         fecha = data.get("fecha")
 
-        foto_ruta = None
-
-        if not request.is_json and "foto" in request.files:
-            archivo = request.files["foto"]
-
-            if archivo and archivo.filename:
-                if not allowed_file(archivo.filename):
-                    return jsonify({
-                        "status": "error",
-                        "error": "Formato de imagen no permitido"
-                    }), 400
-
-                foto_ruta = upload_to_cloudinary(archivo)
-
-                if not foto_ruta:
-                    nombre = secure_filename(archivo.filename)
-                    nombre_final = (
-                        f"{int(datetime.now().timestamp())}_{nombre}"
-                    )
-
-                    ruta_relativa = os.path.join("uploads", nombre_final)
-                    ruta_fisica = os.path.join("static", ruta_relativa)
-
-                    archivo.save(ruta_fisica)
-                    foto_ruta = ruta_relativa.replace("\\", "/")
-
         condiciones_validas = {
             "CO", "AA", "MD", "LD", "AP24", "IL", "OT"
         }
         prioridades_validas = {"1", "2", "3", "4"}
+
+        if not aparato or not mru:
+            return jsonify({
+                "status": "error",
+                "error": "Aparato y MRU son obligatorios."
+            }), 400
 
         if condicion not in condiciones_validas:
             return jsonify({
@@ -763,6 +743,78 @@ def api_reportes():
 
         prioridad = int(prioridad)
 
+        # Recibir las fotos nuevas y conservar compatibilidad
+        # con el formulario anterior que enviaba una sola foto.
+        archivos = []
+
+        if not request.is_json:
+            archivos = [
+                archivo
+                for archivo in request.files.getlist("fotos")
+                if archivo and archivo.filename
+            ]
+
+            if not archivos:
+                foto_anterior = request.files.get("foto")
+
+                if foto_anterior and foto_anterior.filename:
+                    archivos = [foto_anterior]
+
+        if len(archivos) > 3:
+            return jsonify({
+                "status": "error",
+                "error": "Solo puedes adjuntar un máximo de 3 fotografías."
+            }), 400
+
+        fotos_urls = []
+
+        for archivo in archivos:
+
+            if not allowed_file(archivo.filename):
+                return jsonify({
+                    "status": "error",
+                    "error": "Formato de imagen no permitido. Usa JPG, PNG o WEBP."
+                }), 400
+
+            # Intentar guardar en Cloudinary.
+            foto_url = upload_to_cloudinary(archivo)
+
+            # Si Cloudinary falla, conservar el respaldo local.
+            if not foto_url:
+                try:
+                    archivo.stream.seek(0)
+
+                    nombre = secure_filename(archivo.filename)
+                    nombre_final = (
+                        f"{int(datetime.now().timestamp() * 1000)}_"
+                        f"{len(fotos_urls) + 1}_{nombre}"
+                    )
+
+                    ruta_relativa = os.path.join(
+                        "uploads", nombre_final
+                    )
+                    ruta_fisica = os.path.join(
+                        "static", ruta_relativa
+                    )
+
+                    archivo.save(ruta_fisica)
+
+                    foto_url = ruta_relativa.replace("\\", "/")
+
+                except Exception as e:
+                    print("ERROR GUARDANDO FOTO LOCAL:", e)
+
+                    return jsonify({
+                        "status": "error",
+                        "error": "No se pudo guardar una de las fotografías."
+                    }), 500
+
+            fotos_urls.append(foto_url)
+
+        # La primera foto sigue guardándose en la columna foto
+        # para mantener compatibilidad con los reportes anteriores.
+        foto_principal = fotos_urls[0] if fotos_urls else None
+
         cur.execute("""
             INSERT INTO reportes_medidores
             (
@@ -776,10 +828,15 @@ def api_reportes():
                 longitud,
                 usuario,
                 fecha,
-                foto
+                foto,
+                fotos
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    COALESCE(%s::timestamp, NOW()), %s)
+            VALUES (
+                %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                COALESCE(%s::timestamp, NOW()),
+                %s,
+                %s::jsonb
+            )
             RETURNING id
         """, (
             aparato,
@@ -792,7 +849,8 @@ def api_reportes():
             longitud,
             session["usuario"],
             fecha or None,
-            foto_ruta
+            foto_principal,
+            json.dumps(fotos_urls)
         ))
 
         reporte = cur.fetchone()
@@ -800,17 +858,21 @@ def api_reportes():
 
         return jsonify({
             "status": "ok",
-            "id": reporte["id"]
+            "id": reporte["id"],
+            "cantidad_fotos": len(fotos_urls)
         })
 
     except Exception as e:
         conn.rollback()
         print("ERROR GUARDANDO REPORTE:", e)
-        return jsonify({"error": "Error al guardar el reporte"}), 500
+
+        return jsonify({
+            "status": "error",
+            "error": "Error al guardar el reporte."
+        }), 500
 
     finally:
         conn.close()
-
 
 # ---------------- GESTION ADMINISTRATIVA DEL REPORTE ----------------
 
