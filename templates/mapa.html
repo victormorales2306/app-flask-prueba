@@ -292,6 +292,8 @@
 
   let userLat = null;
   let userLon = null;
+  let latReporte = null;
+  let lonReporte = null;
 
   // Validar revisiones asignadas al usuario
 function cargarMisRevisiones(){
@@ -894,7 +896,49 @@ if (fotos.length > 0) {
 
     document.getElementById("modalReporte").style.display = "block";
 
+    // Limpiar coordenadas de un reporte anterior
+    latReporte = null;
+    lonReporte = null;
+
+    // Mostrar que estamos capturando la ubicación
     actualizarTextoUbicacion();
+
+    // Solicitar ubicación GPS para este reporte
+    navigator.geolocation.getCurrentPosition(
+
+        function(pos) {
+
+            latReporte = pos.coords.latitude;
+            lonReporte = pos.coords.longitude;
+
+            actualizarTextoUbicacion();
+
+            console.log("Ubicación del reporte capturada:", latReporte, lonReporte);
+
+        },
+
+        function(error) {
+
+            latReporte = null;
+            lonReporte = null;
+
+            const texto = document.getElementById("ubicacionTexto");
+
+            if (texto) {
+                texto.innerText = "⚠️ No se pudo obtener la ubicación GPS. Intenta nuevamente.";
+            }
+
+            console.error("Error al capturar GPS del reporte:", error);
+
+        },
+
+        {
+            enableHighAccuracy: true,
+            timeout: 30000,
+            maximumAge: 0
+        }
+
+    );
 
 }
 
@@ -1134,9 +1178,14 @@ function limpiarFotosReporte() {
     selectorFotosReporte.value = "";
     mostrarVistaFotosReporte();
 }
-
+   let reporteEnviando = false;
   // 🔥 FUNCIÓN MODIFICADA PARA SOPORTAR FOTO
   function enviarReporte() {
+
+    // Evitar envíos múltiples por doble clic.
+    if (reporteEnviando) {
+        return;
+    }
 
     const aparato = document.getElementById("rep_aparato").value.trim();
     const mru = document.getElementById("rep_mru").value.trim();
@@ -1160,8 +1209,10 @@ if (!prioridad) {
     return;
 }
 
+// BLOQUEAR ENVÍOS REPETIDOS
+reporteEnviando = true;
 
-    const botonEnviar = document.querySelector("#modalReporte button");
+const botonEnviar = document.querySelector("#modalReporte button");
 
     botonEnviar.disabled = true;
     botonEnviar.innerText = "Obteniendo ubicación...";
@@ -1257,24 +1308,28 @@ fotosReporteSeleccionadas.forEach(foto => {
 
             .finally(()=>{
 
-                botonEnviar.disabled=false;
-                botonEnviar.innerText="Enviar";
+    reporteEnviando = false;
 
-            });
+    botonEnviar.disabled = false;
+    botonEnviar.innerText = "Enviar";
+
+});
+
 
         },
 
         function(error){
 
-            console.error(error);
+    console.error(error);
 
-            botonEnviar.disabled=false;
-            botonEnviar.innerText="Enviar";
+    reporteEnviando = false;
 
-            alert("No fue posible obtener la ubicación GPS.");
+    botonEnviar.disabled = false;
+    botonEnviar.innerText = "Enviar";
 
-        },
+    alert("No fue posible obtener la ubicación GPS.");
 
+},
         {
 
             enableHighAccuracy:true,
