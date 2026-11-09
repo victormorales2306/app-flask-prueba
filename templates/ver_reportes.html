@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -47,14 +48,20 @@ button:disabled { opacity:.55; cursor:wait; }
 .cards { display:grid; grid-template-columns:repeat(3,minmax(150px,1fr)); gap:14px; margin-bottom:18px; }
 .metric { padding:19px; border-radius:15px; background:linear-gradient(145deg,#fff,#f9fbfe); border:1px solid var(--borde); box-shadow:var(--sombra); position:relative; overflow:hidden; }
 .metric:before { content:""; position:absolute; inset:0 auto 0 0; width:4px; background:var(--azul2); }
-.metric.alert:before { background:#d97706; } .metric.success:before { background:#16805d; } .metric .value { font-variant-numeric:tabular-nums; }
+.metric.alert:before { background:#d97706; }
+.metric.success:before { background:#16805d; }
+.metric .value { font-variant-numeric:tabular-nums; }
 .metric .label { color:#64748b; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .metric .value { font-size:30px; font-weight:700; margin-top:8px; color:var(--azul); overflow-wrap:anywhere; }
 .metric .note { font-size:12px; color:#64748b; margin-top:5px; }
-.charts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+.charts {
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:18px;
+}
 .chart-box { min-height:280px; }
 .chart-box canvas { width:100%; max-height:245px; }
-.map-wrap { height:440px; width:100%; }
+.map-wrap { height:700px; width:100%; }
 #map { height:100%; width:100%; border-radius:0 0 12px 12px; }
 .table-tools { display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
 #busqueda { max-width:360px; }
@@ -63,12 +70,20 @@ button:disabled { opacity:.55; cursor:wait; }
 .scroll-top-inner { height:1px; }
 .table-scroll::-webkit-scrollbar, .scroll-top::-webkit-scrollbar { height:13px; }
 .table-scroll::-webkit-scrollbar-thumb, .scroll-top::-webkit-scrollbar-thumb { background:#94a3b8; border-radius:10px; border:2px solid #f1f5f9; }
-.table-scroll table { min-width:1700px; }
+.table-scroll table { min-width:2250px; }
 table { width:100%; border-collapse:separate; border-spacing:0; background:white; font-size:13px; }
 thead th { position:sticky; top:0; z-index:2; background:#edf2f7; white-space:nowrap; }
 th, td { padding:10px 11px; border-bottom:1px solid #e7edf3; text-align:left; vertical-align:top; }
 th button.sort { padding:0; border:0; background:transparent; color:#26384a; font-weight:700; text-align:left; white-space:nowrap; }
 tbody tr:hover { background:#f6faff; }
+tbody tr.fila-seleccionada { background:#dbeafe; outline:2px solid #3b82f6; outline-offset:-2px; }
+tbody tr[data-reporte-id] { cursor:pointer; }
+.map-toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 16px; background:#f8fafc; border-bottom:1px solid var(--borde); }
+.map-hint { color:#64748b; font-size:12px; }
+.metric.pending { opacity:.82; }
+.metric.pending:before { background:#94a3b8; }
+.metric .value small { font-size:13px; color:#64748b; font-weight:600; }
+.pending-chart-note { min-height:210px; display:flex; align-items:center; justify-content:center; text-align:center; padding:24px; border:1px dashed #cbd5e1; border-radius:10px; color:#64748b; font-size:13px; background:#f8fafc; }
 .pill { display:inline-block; padding:4px 7px; border-radius:999px; background:#e9eff7; font-size:11px; font-weight:700; white-space:nowrap; }
 .priority-1 { background:#fee2e2; color:#991b1b; }
 .priority-2 { background:#ffedd5; color:#9a3412; }
@@ -90,6 +105,11 @@ tbody tr:hover { background:#f6faff; }
 .followup-editor { min-width:205px; display:grid; gap:7px; }
 .followup-editor textarea, .followup-editor input, .followup-editor select { width:100%; min-width:170px; padding:8px; border:1px solid #cbd5e1; border-radius:7px; font:inherit; font-size:12px; background:#fff; }
 .followup-editor textarea { min-height:66px; resize:vertical; }
+.metric-editor { min-width:145px; display:grid; gap:7px; }
+.metric-editor select, .metric-editor input { width:100%; min-width:130px; padding:8px; border:1px solid #cbd5e1; border-radius:7px; font:inherit; font-size:12px; background:#fff; }
+.metric-readonly { min-width:120px; }
+.metric-readonly .pill { white-space:normal; }
+.frontend-note { margin:0 0 12px; padding:10px 12px; border:1px solid #f2d39b; border-radius:8px; background:#fffbeb; color:#854d0e; font-size:12px; }
 .btn-small { padding:7px 9px; font-size:12px; }
 .state-summary { display:grid; grid-template-columns:repeat(5,minmax(125px,1fr)); gap:10px; }
 .state-card { border:1px solid var(--borde); border-radius:10px; padding:13px; background:#f8fafc; }
@@ -110,7 +130,7 @@ tbody tr:hover { background:#f6faff; }
   .cards { grid-template-columns:repeat(2,minmax(150px,1fr)); }
   .state-summary { grid-template-columns:repeat(3,minmax(125px,1fr)); }
   .charts { grid-template-columns:1fr 1fr; }
-  .charts .chart-box:last-child { grid-column:1/-1; }
+  
 }
 @media (max-width:700px) {
   main { padding:10px; }
@@ -120,12 +140,13 @@ tbody tr:hover { background:#f6faff; }
   .cards { grid-template-columns:1fr 1fr; }
   .state-summary { grid-template-columns:1fr 1fr; }
   .charts { grid-template-columns:1fr; }
-  .charts .chart-box:last-child { grid-column:auto; }
-  .map-wrap { height:350px; }
+  .map-wrap { height:480px; }
 }
 </style>
 </head>
+
 <body data-admin="{{ 'true' if session.get('rol') == 'admin' else 'false' }}">
+
 <header>
   <div>
     <h1>📍 Panel de reportes de medidores</h1>
@@ -138,68 +159,220 @@ tbody tr:hover { background:#f6faff; }
 </header>
 
 <main>
+
   <section class="panel">
     <div class="panel-title">Filtros de consulta</div>
     <div class="panel-body">
       <div class="filters">
-        <div class="field"><label for="f_inicio">Fecha desde</label><input type="date" id="f_inicio"></div>
-        <div class="field"><label for="f_fin">Fecha hasta</label><input type="date" id="f_fin"></div>
-        <div class="field"><label for="f_usuario">Usuario</label><select id="f_usuario"><option value="">Todos los usuarios</option></select></div>
-        <div class="field"><label for="f_condicion">Condición</label>
+
+        <div class="field">
+          <label for="f_inicio">Fecha desde</label>
+          <input type="date" id="f_inicio">
+        </div>
+
+        <div class="field">
+          <label for="f_fin">Fecha hasta</label>
+          <input type="date" id="f_fin">
+        </div>
+
+        <div class="field">
+          <label for="f_usuario">Usuario</label>
+          <select id="f_usuario"><option value="">Todos los usuarios</option></select>
+        </div>
+
+        <div class="field">
+          <label for="f_condicion">Condición</label>
           <select id="f_condicion">
             <option value="">Todas las condiciones</option>
-            <option value="CO">CO — Consumo cero</option><option value="AA">AA — Aire acondicionado</option>
-            <option value="MD">MD — Medidor dañado</option><option value="LD">LD — Línea directa</option>
-            <option value="AP24">AP24 — AP encendida 24 h</option><option value="IL">IL — Suministros ilegales</option>
+            <option value="CO">CO — Consumo cero</option>
+            <option value="AA">AA — Aire acondicionado</option>
+            <option value="MD">MD — Medidor dañado</option>
+            <option value="LD">LD — Línea directa</option>
+            <option value="AP24">AP24 — AP encendida 24 h</option>
+            <option value="IL">IL — Suministros ilegales</option>
             <option value="OT">OT — Otros</option>
           </select>
         </div>
-        <div class="field"><label for="f_prioridad">Prioridad</label>
+
+        <div class="field">
+          <label for="f_prioridad">Prioridad</label>
           <select id="f_prioridad">
-            <option value="">Todas las prioridades</option><option value="1">1 — Urgente</option>
-            <option value="2">2 — Alta</option><option value="3">3 — Media</option><option value="4">4 — Puede esperar</option>
+            <option value="">Todas las prioridades</option>
+            <option value="1">1 — Urgente</option>
+            <option value="2">2 — Alta</option>
+            <option value="3">3 — Media</option>
+            <option value="4">4 — Puede esperar</option>
           </select>
         </div>
+
+        <div class="field">
+          <label for="f_empresa">Empresa</label>
+          <select id="f_empresa">
+            <option value="">Todas las empresas</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f_subempresa">Subempresa</label>
+          <select id="f_subempresa">
+            <option value="">Todas las subempresas</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f_efectividad">Efectividad</label>
+          <select id="f_efectividad">
+            <option value="">Todas</option>
+            <option value="true">Efectivo</option>
+            <option value="false">No efectivo</option>
+            <option value="pendiente">Pendiente de evaluar</option>
+          </select>
+        </div>
+
         <div class="filter-actions">
           <button class="btn-primary" id="btnFiltrar" type="button">Aplicar filtros</button>
           <button class="btn-light" id="btnLimpiar" type="button">Limpiar filtros</button>
         </div>
+
       </div>
       <div class="status" id="estadoCarga" role="status">Cargando reportes…</div>
     </div>
   </section>
 
+  <!-- KPI: tres filas de tres tarjetas -->
+
   <section class="cards">
-    <div class="metric"><div class="label">Reportes encontrados</div><div class="value" id="m_total">0</div><div class="note">Según los filtros aplicados</div></div>
-    <div class="metric"><div class="label">Usuarios con reportes</div><div class="value" id="m_usuarios">0</div><div class="note">Usuarios distintos</div></div>
-    <div class="metric"><div class="label">Prioridad 1</div><div class="value" id="m_p1">0</div><div class="note">Reportes urgentes</div></div>
-    <div class="metric"><div class="label">Condición más reportada</div><div class="value" id="m_condicion" style="font-size:20px">—</div><div class="note" id="m_condicion_nota">Sin datos</div></div>
-    <div class="metric alert"><div class="label">Reportes sin atención</div><div class="value" id="m_sin_atencion">0</div><div class="note">Sin comentario de gestión, orden ni estado SAP</div></div>
-    <div class="metric success"><div class="label">Reportes con OS SAP</div><div class="value" id="m_con_os">0</div><div class="note">Reportes con número de orden registrado</div></div>
+
+    <!-- FILA 1: ACTIVIDAD -->
+
+    <div class="metric">
+      <div class="label">Total de reportes</div>
+      <div class="value" id="m_total">0</div>
+      <div class="note">Según los filtros aplicados</div>
+    </div>
+
+    <div class="metric">
+      <div class="label">Reportes trabajados</div>
+      <div class="value" id="m_trabajados">0</div>
+      <div class="note" id="m_trabajados_nota">0.0% del total de reportes</div>
+    </div>
+
+    <div class="metric success">
+      <div class="label">Reportes con OS SAP</div>
+      <div class="value" id="m_con_os">0</div>
+      <div class="note" id="m_con_os_nota">Reportes con número de orden registrado</div>
+    </div>
+
+    <!-- FILA 2: GESTIÓN Y RESULTADOS -->
+
+    <div class="metric alert">
+      <div class="label">Sin gestión registrada</div>
+      <div class="value" id="m_sin_atencion">0</div>
+      <div class="note" id="m_sin_atencion_nota">Reportes sin trabajar</div>
+    </div>
+
+    <div class="metric success">
+      <div class="label">Reportes efectivos</div>
+      <div class="value" id="m_efectivos">0</div>
+      <div class="note" id="m_efectivos_nota">0.0% del total de reportes</div>
+    </div>
+
+    <div class="metric">
+      <div class="label">Energía recuperada</div>
+      <div class="value" id="m_energia">0</div>
+      <div class="note">Total acumulado en kWh</div>
+    </div>
+
+    <!-- FILA 3: USUARIOS -->
+
+    <div class="metric">
+      <div class="label">Total de usuarios activos</div>
+      <div class="value" id="m_total_usuarios">—</div>
+      <div class="note" id="m_total_usuarios_nota">Usuarios activos sin administradores</div>
+    </div>
+
+    <div class="metric">
+      <div class="label">Usuarios con reportes</div>
+      <div class="value" id="m_usuarios">0</div>
+      <div class="note">Usuarios distintos con reportes</div>
+    </div>
+
+    <div class="metric">
+      <div class="label">Usuarios con reportes (%)</div>
+      <div class="value" id="m_usuarios_pct">—</div>
+      <div class="note" id="m_usuarios_pct_nota">Usuarios con reportes / usuarios activos</div>
+    </div>
+
   </section>
 
   <section class="panel">
     <div class="panel-title">Estado de los reportes con OS SAP</div>
-    <div class="panel-body"><div class="state-summary">
-      <div class="state-card"><div class="state-name">Generada</div><div class="state-count" id="sap_generada">0</div></div>
-      <div class="state-card"><div class="state-name">Pendiente de asignar</div><div class="state-count" id="sap_pendiente">0</div></div>
-      <div class="state-card"><div class="state-name">En tratamiento</div><div class="state-count" id="sap_tratamiento">0</div></div>
-      <div class="state-card"><div class="state-name">Resuelta</div><div class="state-count" id="sap_resuelta">0</div></div>
-      <div class="state-card"><div class="state-name">Anulada</div><div class="state-count" id="sap_anulada">0</div></div>
-    </div><div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div></div>
+    <div class="panel-body">
+      <div class="state-summary">
+        <div class="state-card"><div class="state-name">Generada</div><div class="state-count" id="sap_generada">0</div></div>
+        <div class="state-card"><div class="state-name">Pendiente de asignar</div><div class="state-count" id="sap_pendiente">0</div></div>
+        <div class="state-card"><div class="state-name">En tratamiento</div><div class="state-count" id="sap_tratamiento">0</div></div>
+        <div class="state-card"><div class="state-name">Resuelta</div><div class="state-count" id="sap_resuelta">0</div></div>
+        <div class="state-card"><div class="state-name">Anulada</div><div class="state-count" id="sap_anulada">0</div></div>
+      </div>
+      <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div>
+    </div>
   </section>
 
   <section class="panel">
     <div class="panel-title">Resumen estadístico de los reportes filtrados</div>
     <div class="panel-body charts">
-      <div class="chart-box"><div class="field"><label>Reportes por usuario</label></div><canvas id="chartUsuarios"></canvas></div>
-      <div class="chart-box"><div class="field"><label>Reportes por condición</label></div><canvas id="chartCondiciones"></canvas></div>
-      <div class="chart-box"><div class="field"><label>Reportes por prioridad</label></div><canvas id="chartPrioridades"></canvas></div>
+      <div class="chart-box">
+        <div class="field"><label>Top 10 técnicos por cantidad de reportes</label></div>
+        <canvas id="chartUsuarios"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="field"><label>Reportes por condición · cantidad y porcentaje</label></div>
+        <canvas id="chartCondiciones"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="field"><label>Reportes por prioridad</label></div>
+        <canvas id="chartPrioridades"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="field"><label>Reportes por subempresa</label></div>
+        <canvas id="chartSubempresas"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-title">Estado del seguimiento administrativo</div>
+    <div class="panel-body">
+      <div class="state-summary followup-summary">
+        <div class="state-card">
+          <div class="state-name">Sin seguimiento</div>
+          <div class="state-count" id="seg_sin">0</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Pendiente</div>
+          <div class="state-count" id="seg_pendiente">0</div>
+        </div>
+        <div class="state-card">
+          <div class="state-name">Resuelto</div>
+          <div class="state-count" id="seg_resuelto">0</div>
+        </div>
+      </div>
+      <div class="footer-note">
+        Conteo independiente del estado de las órdenes SAP y según los filtros aplicados.
+      </div>
     </div>
   </section>
 
   <section class="panel">
     <div class="panel-title">Mapa de reportes</div>
+    <div class="map-toolbar">
+      <span class="map-hint" id="mapSelectionHint">Selecciona un marcador para localizar su registro en la tabla.</span>
+      <button class="btn-light btn-small" id="btnMostrarTodos" type="button">Mostrar todos los reportes</button>
+    </div>
     <div class="map-wrap"><div id="map"></div></div>
   </section>
 
@@ -207,49 +380,82 @@ tbody tr:hover { background:#f6faff; }
     <div class="panel-title">Detalle completo de reportes</div>
     <div class="panel-body">
       <div id="mensajeAccion" role="status" aria-live="polite"></div>
+
       <div class="table-tools">
         <div id="conteoTabla">0 reportes</div>
         <input id="busqueda" type="search" placeholder="Buscar en los resultados…" aria-label="Buscar en los resultados">
       </div>
-      <div class="scroll-top" id="scrollTopTabla" aria-label="Desplazamiento horizontal de la tabla"><div class="scroll-top-inner" id="scrollTopInner"></div></div>
+
+      <div class="scroll-top" id="scrollTopTabla" aria-label="Desplazamiento horizontal de la tabla">
+        <div class="scroll-top-inner" id="scrollTopInner"></div>
+      </div>
+
       <div class="table-scroll" id="tableScroll">
         <table id="tablaReportes">
-          <thead><tr>
-            <th><button class="sort" data-sort="aparato">Aparato ↕</button></th>
-            <th><button class="sort" data-sort="mru">MRU ↕</button></th>
-            <th><button class="sort" data-sort="referencia">Referencia ↕</button></th>
-            <th><button class="sort" data-sort="condicion">Condición ↕</button></th>
-            <th><button class="sort" data-sort="prioridad">Prioridad ↕</button></th>
-            <th><button class="sort" data-sort="comentario">Comentario ↕</button></th>
-            <th>Latitud</th><th>Longitud</th>
-            <th><button class="sort" data-sort="usuario">Usuario ↕</button></th>
-            <th><button class="sort" data-sort="fecha">Fecha ↕</button></th>
-            <th>Fotografía</th>
-            <th>Acción del analista</th>
-            <th>Orden SAP</th>
-            <th>Estado SAP</th>
-            <th>Última actualización</th>
-          </tr></thead>
+          <thead>
+            <tr>
+              <th><button class="sort" data-sort="aparato">Aparato ↕</button></th>
+              <th><button class="sort" data-sort="mru">MRU ↕</button></th>
+              <th><button class="sort" data-sort="referencia">Referencia ↕</button></th>
+              <th><button class="sort" data-sort="condicion">Condición ↕</button></th>
+              <th><button class="sort" data-sort="prioridad">Prioridad ↕</button></th>
+              <th><button class="sort" data-sort="comentario">Comentario ↕</button></th>
+              <th>Latitud</th>
+              <th>Longitud</th>
+              <th><button class="sort" data-sort="usuario">Usuario ↕</button></th>
+              <th><button class="sort" data-sort="fecha">Fecha ↕</button></th>
+              <th>Fotografía</th>
+              <th>Acción del analista</th>
+              <th>Efectividad</th>
+              <th>Energía recuperada (kWh)</th>
+              <th>Bandera de seguimiento</th>
+              <th>Orden SAP</th>
+              <th>Estado SAP</th>
+              <th>Última actualización</th>
+            </tr>
+          </thead>
           <tbody id="tablaBody"></tbody>
         </table>
       </div>
-      <div class="footer-note">Selecciona el encabezado de una columna con ↕ para ordenar. Los filtros también se aplican a la exportación de Excel.</div>
+
+      
+
+      <div class="footer-note">
+        Selecciona el encabezado de una columna con ↕ para ordenar. Los filtros también se aplican a la exportación de Excel.
+      </div>
     </div>
   </section>
+
 </main>
+
 <div id="modalHistorial" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:9999;padding:20px;align-items:center;justify-content:center;">
   <div style="width:min(700px,100%);max-height:85vh;overflow:auto;background:#fff;border-radius:14px;padding:18px;box-shadow:0 20px 60px #0003;">
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;"><strong id="tituloHistorial">Historial de gestiones</strong><button class="btn-light" type="button" onclick="cerrarHistorial()">Cerrar</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;">
+      <strong id="tituloHistorial">Historial de gestiones</strong>
+      <button class="btn-light" type="button" onclick="cerrarHistorial()">Cerrar</button>
+    </div>
     <div id="contenidoHistorial" class="history-list">Cargando historial…</div>
   </div>
 </div>
 
 <script>
 const etiquetasCondicion = {
-  CO:"CO — Consumo cero", AA:"AA — Aire acondicionado", MD:"MD — Medidor dañado",
-  LD:"LD — Línea directa", AP24:"AP24 — AP encendida 24 h", IL:"IL — Suministros ilegales", OT:"OT — Otros"
+  CO:"CO — Consumo cero",
+  AA:"AA — Aire acondicionado",
+  MD:"MD — Medidor dañado",
+  LD:"LD — Línea directa",
+  AP24:"AP24 — AP encendida 24 h",
+  IL:"IL — Suministros ilegales",
+  OT:"OT — Otros"
 };
-const etiquetasPrioridad = {"1":"1 — Urgente","2":"2 — Alta","3":"3 — Media","4":"4 — Puede esperar"};
+
+const etiquetasPrioridad = {
+  "1":"1 — Urgente",
+  "2":"2 — Alta",
+  "3":"3 — Media",
+  "4":"4 — Puede esperar"
+};
+
 const etiquetasEstadoSAP = {
   "Generada":"Generada",
   "Pendiente de asignar":"Pendiente de asignar",
@@ -257,7 +463,11 @@ const etiquetasEstadoSAP = {
   "Resuelta":"Resuelta",
   "Anulada":"Anulada"
 };
-function estadoSAPTexto(estado) { return etiquetasEstadoSAP[estado] || ""; }
+
+function estadoSAPTexto(estado) {
+  return etiquetasEstadoSAP[estado] || "";
+}
+
 function claseEstadoSAP(estado) {
   const clases = {
     "Generada":"sap-generada",
@@ -270,317 +480,1527 @@ function claseEstadoSAP(estado) {
 }
 
 const map = L.map("map").setView([13.7, -89.2], 10);
-L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom:19, attribution:"© OpenStreetMap"}).addTo(map);
-const markers = L.layerGroup().addTo(map);
 
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom:19,
+  attribution:"© OpenStreetMap"
+}).addTo(map);
+
+const markers = L.layerGroup().addTo(map);
+const markersPorReporte = new Map();
+
+let reporteSeleccionadoId = null;
 let reportes = [];
 let reportesFiltrados = [];
 let orden = {campo:"fecha", direccion:-1};
 let charts = {};
+let totalUsuariosActivos = null;
 
 function textoSeguro(valor) {
-  return String(valor ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  return String(valor ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;",
+    "<":"&lt;",
+    ">":"&gt;",
+    '"':"&quot;",
+    "'":"&#39;"
+  }[c]));
 }
-function condicionTexto(v) { return etiquetasCondicion[v] || (v || "Sin condición"); }
-function prioridadTexto(v) { return etiquetasPrioridad[String(v)] || (v == null || v === "" ? "Sin prioridad" : String(v)); }
+
+function condicionTexto(v) {
+  return etiquetasCondicion[v] || (v || "Sin condición");
+}
+
+function prioridadTexto(v) {
+  return etiquetasPrioridad[String(v)] ||
+    (v == null || v === "" ? "Sin prioridad" : String(v));
+}
+
 function fotoUrl(foto) {
   if (!foto) return "";
   const s = String(foto);
+
   if (/^https?:\/\//i.test(s)) return s;
-  return "/static/" + s.replace(/^\/?static\//, "").replace(/^\/+/, "");
+
+  return "/static/" + s
+    .replace(/^\/?static\//, "")
+    .replace(/^\/+/, "");
 }
+
 function fotosReporte(r) {
   let lista = [];
-  if (Array.isArray(r.fotos)) lista = r.fotos;
-  else if (typeof r.fotos === "string" && r.fotos.trim()) {
-    try { const parsed = JSON.parse(r.fotos); if (Array.isArray(parsed)) lista = parsed; } catch (_) {}
+
+  if (Array.isArray(r.fotos)) {
+    lista = r.fotos;
+  } else if (typeof r.fotos === "string" && r.fotos.trim()) {
+    try {
+      const parsed = JSON.parse(r.fotos);
+      if (Array.isArray(parsed)) lista = parsed;
+    } catch (_) {}
   }
+
   if (!lista.length && r.foto) lista = [r.foto];
-  if (r.foto && !lista.includes(r.foto)) lista.unshift(r.foto);
-  return [...new Set(lista.filter(Boolean))].slice(0,3).map(fotoUrl);
+
+  if (r.foto && !lista.includes(r.foto)) {
+    lista.unshift(r.foto);
+  }
+
+  return [...new Set(lista.filter(Boolean))]
+    .slice(0,3)
+    .map(fotoUrl);
 }
+
 function fotosHtml(r) {
   const fotos = fotosReporte(r);
+
   if (!fotos.length) return "—";
-  return `<div class="photo-gallery">${fotos.map((url,i)=>`<a class="photo-item" href="${textoSeguro(url)}" target="_blank" rel="noopener" title="Abrir fotografía ${i+1}"><img class="photo-thumb" src="${textoSeguro(url)}" alt="Foto ${i+1}" loading="lazy"><span>Foto ${i+1}</span></a>`).join("")}</div>`;
+
+  return `<div class="photo-gallery">${
+    fotos.map((url,i)=>`
+      <a class="photo-item"
+         href="${textoSeguro(url)}"
+         target="_blank"
+         rel="noopener"
+         title="Abrir fotografía ${i+1}">
+        <img class="photo-thumb"
+             src="${textoSeguro(url)}"
+             alt="Foto ${i+1}"
+             loading="lazy">
+        <span>Foto ${i+1}</span>
+      </a>
+    `).join("")
+  }</div>`;
 }
+
 function formatoFecha(v) {
   if (!v) return "";
   return String(v).replace("T"," ").replace(/(\.\d+)?Z$/, "");
 }
+
 function filtrosActuales() {
   return {
-    inicio:document.getElementById("f_inicio").value,
-    fin:document.getElementById("f_fin").value,
-    usuario:document.getElementById("f_usuario").value,
-    condicion:document.getElementById("f_condicion").value,
-    prioridad:document.getElementById("f_prioridad").value
+    inicio: document.getElementById("f_inicio").value,
+    fin: document.getElementById("f_fin").value,
+    usuario: document.getElementById("f_usuario").value,
+    condicion: document.getElementById("f_condicion").value,
+    prioridad: document.getElementById("f_prioridad").value,
+    empresa: document.getElementById("f_empresa").value,
+    sub_empresa: document.getElementById("f_subempresa").value,
+    efectividad: document.getElementById("f_efectividad").value
   };
 }
+
 function urlConFiltros(base) {
   const p = new URLSearchParams();
-  Object.entries(filtrosActuales()).forEach(([k,v]) => { if (v) p.set(k,v); });
+
+  Object.entries(filtrosActuales()).forEach(([k,v]) => {
+    if (v) p.set(k,v);
+  });
+
   return base + (p.toString() ? "?" + p.toString() : "");
 }
+
 function poblarUsuarios(data) {
   const select = document.getElementById("f_usuario");
   const seleccionado = select.value;
-  const usuarios = [...new Set(data.map(r => String(r.usuario || "").trim()).filter(Boolean))]
-    .sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
-  select.innerHTML = '<option value="">Todos los usuarios</option>' +
-    usuarios.map(u=>`<option value="${textoSeguro(u)}">${textoSeguro(u)}</option>`).join("");
-  if (usuarios.includes(seleccionado)) select.value = seleccionado;
+
+  const usuarios = [...new Set(
+    data.map(r => String(r.usuario || "").trim()).filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
+
+  select.innerHTML =
+    '<option value="">Todos los usuarios</option>' +
+    usuarios.map(u =>
+      `<option value="${textoSeguro(u)}">${textoSeguro(u)}</option>`
+    ).join("");
+
+  if (usuarios.includes(seleccionado)) {
+    select.value = seleccionado;
+  }
 }
+
+function poblarEmpresas(data) {
+  const select = document.getElementById("f_empresa");
+  const seleccionado = select.value;
+
+  const empresas = [...new Set(
+    data.map(r => String(r.empresa || "").trim()).filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b,"es"));
+
+  select.innerHTML =
+    '<option value="">Todas las empresas</option>' +
+    empresas.map(e =>
+      `<option value="${textoSeguro(e)}">${textoSeguro(e)}</option>`
+    ).join("");
+
+  if (empresas.includes(seleccionado)) {
+    select.value = seleccionado;
+  }
+
+  poblarSubempresas(data);
+}
+
+function poblarSubempresas(data) {
+  const select = document.getElementById("f_subempresa");
+  const empresa = document.getElementById("f_empresa").value;
+  const seleccionado = select.value;
+
+  const registros = empresa
+    ? data.filter(r => String(r.empresa || "").trim() === empresa)
+    : data;
+
+  const subempresas = [...new Set(
+    registros.map(r => String(r.sub_empresa || "").trim()).filter(Boolean)
+  )].sort((a,b)=>a.localeCompare(b,"es"));
+
+  select.innerHTML =
+    '<option value="">Todas las subempresas</option>' +
+    subempresas.map(s =>
+      `<option value="${textoSeguro(s)}">${textoSeguro(s)}</option>`
+    ).join("");
+
+  if (subempresas.includes(seleccionado)) {
+    select.value = seleccionado;
+  }
+}
+
 function fechaISO(valor) {
   if (!valor) return "";
+
   const s = String(valor).trim();
+
   let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
-  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if (m) return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
-  const d = new Date(s);
-  if (!Number.isNaN(d.getTime())) {
-    return [d.getUTCFullYear(),String(d.getUTCMonth()+1).padStart(2,"0"),String(d.getUTCDate()).padStart(2,"0")].join("-");
+
+  if (m) {
+    return `${m[1]}-${m[2]}-${m[3]}`;
   }
+
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+
+  if (m) {
+    return `${m[3]}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+  }
+
+  const d = new Date(s);
+
+  if (!Number.isNaN(d.getTime())) {
+    return [
+      d.getUTCFullYear(),
+      String(d.getUTCMonth()+1).padStart(2,"0"),
+      String(d.getUTCDate()).padStart(2,"0")
+    ].join("-");
+  }
+
   return "";
 }
+
 function aplicarFiltrosLocales() {
   const f = filtrosActuales();
+
   reportesFiltrados = reportes.filter(r => {
     const fecha = fechaISO(r.fecha);
-    return (!f.inicio || fecha >= f.inicio) &&
+    const efectividad = valorEfectividad(r);
+
+    return (
+      (!f.inicio || fecha >= f.inicio) &&
       (!f.fin || fecha <= f.fin) &&
       (!f.usuario || String(r.usuario || "") === f.usuario) &&
       (!f.condicion || String(r.condicion || "") === f.condicion) &&
-      (!f.prioridad || String(r.prioridad ?? "") === f.prioridad);
+      (!f.prioridad || String(r.prioridad ?? "") === f.prioridad) &&
+      (!f.empresa || String(r.empresa || "").trim() === f.empresa) &&
+      (!f.sub_empresa || String(r.sub_empresa || "").trim() === f.sub_empresa) &&
+      (
+        !f.efectividad ||
+        (f.efectividad === "true" && efectividad === "true") ||
+        (f.efectividad === "false" && efectividad === "false") ||
+        (f.efectividad === "pendiente" && efectividad === "")
+      )
+    );
   });
+
   actualizarVista();
 }
+
 function contarPor(data, campo, transform=v=>String(v || "Sin dato")) {
   const c = {};
-  data.forEach(r => { const k=transform(r[campo]); c[k]=(c[k]||0)+1; });
+
+  data.forEach(r => {
+    const k = transform(r[campo]);
+    c[k] = (c[k] || 0) + 1;
+  });
+
   return Object.entries(c).sort((a,b)=>b[1]-a[1]);
 }
-function actualizarChart(id, tipo, labels, values, horizontal=false) {
+
+// =====================================================
+// ETIQUETAS VISIBLES SOBRE LOS GRAFICOS
+// =====================================================
+
+const pluginEtiquetasDatos = {
+  id: "etiquetasDatos",
+
+  afterDatasetsDraw(chart) {
+    const ctx = chart.ctx;
+
+    ctx.save();
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+
+      const meta = chart.getDatasetMeta(datasetIndex);
+
+      if (!meta || meta.hidden) return;
+
+      meta.data.forEach((element, index) => {
+
+        const valor = dataset.data[index];
+
+        if (valor === null || valor === undefined) return;
+
+        const posicion = element.getProps(["x", "y"], true);
+
+        const esPorcentaje = dataset.yAxisID === "y1";
+
+        const etiqueta = esPorcentaje
+          ? `${Number(valor).toFixed(1)}%`
+          : Number(valor).toLocaleString("es");
+
+        ctx.font = "bold 11px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.strokeText(
+          etiqueta,
+          posicion.x,
+          posicion.y - (dataset.type === "line" ? 10 : -15)
+        );
+
+        ctx.fillStyle = esPorcentaje ? "#b45309" : "#174a7e";
+
+        ctx.fillText(
+          etiqueta,
+          posicion.x,
+          posicion.y - (dataset.type === "line" ? 10 : -15)
+        );
+
+      });
+    });
+
+    ctx.restore();
+  }
+};
+
+function actualizarChart(
+  id,
+  tipo,
+  labels,
+  values,
+  horizontal=false,
+  mostrarEtiquetas=false
+) {
   if (charts[id]) charts[id].destroy();
+
   const ctx = document.getElementById(id);
+
   charts[id] = new Chart(ctx, {
     type:tipo,
-    data:{labels, datasets:[{label:"Reportes",data:values,borderWidth:1}]},
+    data:{
+      labels,
+      datasets:[{
+        label:"Reportes",
+        data:values,
+        borderWidth:1
+      }]
+    },
+    plugins: mostrarEtiquetas
+      ? [pluginEtiquetasDatos]
+      : [],
     options:{
-      responsive:true, maintainAspectRatio:true,
+      responsive:true,
+      maintainAspectRatio:true,
       indexAxis:horizontal?"y":"x",
-      plugins:{legend:{display:tipo==="doughnut"}, tooltip:{enabled:true}},
-      scales:tipo==="bar"?{y:{beginAtZero:true,ticks:{precision:0}}}:{}
+      layout:{
+        padding:{top:20}
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{enabled:true}
+      },
+      scales:tipo==="bar" ? {
+        x:{beginAtZero:true,ticks:{precision:0}},
+        y:{beginAtZero:true,ticks:{precision:0}}
+      } : {}
     }
   });
 }
+
+function actualizarChartCondiciones(data) {
+  if (charts.chartCondiciones) {
+    charts.chartCondiciones.destroy();
+  }
+
+  const resumen = contarPor(data,"condicion",condicionTexto);
+  const total = data.length || 1;
+
+  const labels = resumen.map(x=>x[0]);
+  const cantidades = resumen.map(x=>x[1]);
+  const porcentajes = cantidades.map(n=>Number((n*100/total).toFixed(1)));
+
+  charts.chartCondiciones = new Chart(
+    document.getElementById("chartCondiciones"),
+    {
+      type:"bar",
+      plugins:[pluginEtiquetasDatos],
+      data:{
+        labels,
+        datasets:[
+          {
+            type:"bar",
+            label:"Cantidad de reportes",
+            data:cantidades,
+            yAxisID:"y",
+            borderWidth:1
+          },
+          {
+            type:"line",
+            label:"Porcentaje del total",
+            data:porcentajes,
+            yAxisID:"y1",
+            borderWidth:2,
+            tension:.25,
+            pointRadius:4
+          }
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:true,
+        interaction:{mode:"index",intersect:false},
+        plugins:{
+          legend:{display:true,position:"bottom"},
+          tooltip:{
+            callbacks:{
+              label:(ctx)=>
+                ctx.dataset.yAxisID==="y1"
+                  ? `${ctx.dataset.label}: ${ctx.raw}%`
+                  : `${ctx.dataset.label}: ${ctx.raw}`
+            }
+          }
+        },
+        scales:{
+          y:{
+            beginAtZero:true,
+            title:{display:true,text:"Cantidad"},
+            ticks:{precision:0}
+          },
+          y1:{
+            beginAtZero:true,
+            position:"right",
+            title:{display:true,text:"Porcentaje"},
+            ticks:{callback:v=>v+"%"},
+            grid:{drawOnChartArea:false}
+          }
+        }
+      }
+    }
+  );
+}
+
 function actualizarResumen(data) {
-  document.getElementById("m_total").textContent = data.length.toLocaleString("es");
-  document.getElementById("m_usuarios").textContent = new Set(data.map(r=>r.usuario).filter(Boolean)).size.toLocaleString("es");
-  document.getElementById("m_p1").textContent = data.filter(r=>String(r.prioridad)==="1").length.toLocaleString("es");
-  const condiciones = contarPor(data,"condicion",condicionTexto);
-  document.getElementById("m_condicion").textContent = condiciones.length ? condiciones[0][0] : "—";
-  document.getElementById("m_condicion_nota").textContent = condiciones.length ? `${condiciones[0][1]} reporte(s)` : "Sin datos";
-  const sinAtencion = data.filter(r => !String(r.seguimiento_comentario || "").trim() && !String(r.orden_sap || "").trim() && !String(r.estado_sap || "").trim()).length;
-  const conOS = data.filter(r => String(r.orden_sap || "").trim()).length;
-  document.getElementById("m_sin_atencion").textContent = sinAtencion.toLocaleString("es");
-  document.getElementById("m_con_os").textContent = conOS.toLocaleString("es");
+  const total = data.length;
+
+  const usuarios = new Set(
+    data.map(r => String(r.usuario || "").trim()).filter(Boolean)
+  );
+
+  const conOS = data.filter(r =>
+    String(r.orden_sap || "").trim()
+  ).length;
+
+  // Un reporte trabajado se cuenta una sola vez.
+  const trabajados = data.filter(r => {
+    const tieneOS = Boolean(String(r.orden_sap || "").trim());
+    const tieneComentario = Boolean(String(r.seguimiento_comentario || "").trim());
+    const tieneBandera = valorEstadoSeguimiento(r) !== "SIN_SEGUIMIENTO";
+    const evaluado = valorEfectividad(r) !== "";
+
+    return tieneOS || tieneComentario || tieneBandera || evaluado;
+  }).length;
+
+  const efectivos = data.filter(r =>
+    valorEfectividad(r) === "true"
+  ).length;
+
+  const energia = data.reduce((suma, r) => {
+    const valor = Number(r.energia_recuperada_kwh);
+    return suma + (Number.isFinite(valor) ? valor : 0);
+  }, 0);
+
+  const sinGestion = total - trabajados;
+
+  // KPI: actividad y usuarios
+  document.getElementById("m_total").textContent =
+    total.toLocaleString("es");
+
+  document.getElementById("m_usuarios").textContent =
+    usuarios.size.toLocaleString("es");
+
+  // Total de usuarios activos
+  document.getElementById("m_total_usuarios").textContent =
+    totalUsuariosActivos !== null
+      ? totalUsuariosActivos.toLocaleString("es")
+      : "—";
+
+  document.getElementById("m_total_usuarios_nota").textContent =
+    totalUsuariosActivos !== null
+      ? "Usuarios activos sin administradores"
+      : "No se pudo consultar el total de usuarios activos";
+
+  // Sin gestión registrada
+  document.getElementById("m_sin_atencion").textContent =
+    sinGestion.toLocaleString("es");
+
+  document.getElementById("m_sin_atencion_nota").textContent =
+    `${total ? (sinGestion * 100 / total).toFixed(1) : "0.0"}% sin trabajar`;
+
+  // Reportes con OS SAP
+  document.getElementById("m_con_os").textContent =
+    conOS.toLocaleString("es");
+
+  document.getElementById("m_con_os_nota").textContent =
+    `${total ? (conOS * 100 / total).toFixed(1) : "0.0"}% del total de reportes`;
+
+  // Reportes trabajados
+  document.getElementById("m_trabajados").textContent =
+    trabajados.toLocaleString("es");
+
+  document.getElementById("m_trabajados_nota").textContent =
+    `${total ? (trabajados * 100 / total).toFixed(1) : "0.0"}% del total de reportes`;
+
+  // Efectividad
+  document.getElementById("m_efectivos").textContent =
+    efectivos.toLocaleString("es");
+
+  document.getElementById("m_efectivos_nota").textContent =
+    `${trabajados ? (efectivos * 100 / trabajados).toFixed(1) : "0.0"}% de reportes trabajados`;
+
+  // Energía recuperada
+  document.getElementById("m_energia").textContent =
+    energia.toLocaleString("es", {
+      minimumFractionDigits:2,
+      maximumFractionDigits:2
+    });
+
+  // Porcentaje de usuarios con reportes
+  if (totalUsuariosActivos !== null && totalUsuariosActivos > 0) {
+    const porcentaje = usuarios.size * 100 / totalUsuariosActivos;
+
+    document.getElementById("m_usuarios_pct").textContent =
+      `${porcentaje.toFixed(1)}%`;
+
+    document.getElementById("m_usuarios_pct_nota").textContent =
+      `${usuarios.size.toLocaleString("es")} de ${totalUsuariosActivos.toLocaleString("es")} usuarios activos`;
+
+  } else if (totalUsuariosActivos === 0) {
+    document.getElementById("m_usuarios_pct").textContent = "—";
+
+    document.getElementById("m_usuarios_pct_nota").textContent =
+      "No hay usuarios activos para calcular el porcentaje";
+
+  } else {
+    document.getElementById("m_usuarios_pct").textContent = "—";
+
+    document.getElementById("m_usuarios_pct_nota").textContent =
+      "No se pudo consultar el total de usuarios activos";
+  }
+
+  // Estados de órdenes SAP
   const estados = [
-    ["sap_generada","Generada"],
-    ["sap_pendiente","Pendiente de asignar"],
-    ["sap_tratamiento","En tratamiento"],
-    ["sap_resuelta","Resuelta"],
-    ["sap_anulada","Anulada"]
+    ["sap_generada", "Generada"],
+    ["sap_pendiente", "Pendiente de asignar"],
+    ["sap_tratamiento", "En tratamiento"],
+    ["sap_resuelta", "Resuelta"],
+    ["sap_anulada", "Anulada"]
   ];
-  estados.forEach(([id,estado]) => {
-    const n = data.filter(r => String(r.orden_sap || "").trim() && String(r.estado_sap || "").trim() === estado).length;
-    document.getElementById(id).textContent = n.toLocaleString("es");
+
+  estados.forEach(([id, estado]) => {
+    const n = data.filter(r =>
+      String(r.orden_sap || "").trim() &&
+      String(r.estado_sap || "").trim() === estado
+    ).length;
+
+    document.getElementById(id).textContent =
+      n.toLocaleString("es");
   });
-  const usuarios = contarPor(data,"usuario",v=>v || "Sin usuario").slice(0,12);
-  actualizarChart("chartUsuarios","bar",usuarios.map(x=>x[0]),usuarios.map(x=>x[1]),true);
-  const cond = contarPor(data,"condicion",condicionTexto);
-  actualizarChart("chartCondiciones","doughnut",cond.map(x=>x[0]),cond.map(x=>x[1]));
-  const prios = ["1","2","3","4"].map(p=>[etiquetasPrioridad[p],data.filter(r=>String(r.prioridad)===p).length]);
-  actualizarChart("chartPrioridades","bar",prios.map(x=>x[0]),prios.map(x=>x[1]));
+
+  // Bandera de seguimiento
+  const sinSeguimiento = data.filter(r =>
+    valorEstadoSeguimiento(r) === "SIN_SEGUIMIENTO"
+  ).length;
+
+  const pendientes = data.filter(r =>
+    valorEstadoSeguimiento(r) === "PENDIENTE"
+  ).length;
+
+  const resueltos = data.filter(r =>
+    valorEstadoSeguimiento(r) === "RESUELTO"
+  ).length;
+
+  document.getElementById("seg_sin").textContent =
+    sinSeguimiento.toLocaleString("es");
+
+  document.getElementById("seg_pendiente").textContent =
+    pendientes.toLocaleString("es");
+
+  document.getElementById("seg_resuelto").textContent =
+    resueltos.toLocaleString("es");
+
+  // Gráfico de los 10 técnicos con más reportes
+  const resumenUsuarios = contarPor(
+    data,
+    "usuario",
+    v => v || "Sin usuario"
+  ).slice(0,10);
+
+  actualizarChart(
+    "chartUsuarios",
+    "bar",
+    resumenUsuarios.map(x=>x[0]),
+    resumenUsuarios.map(x=>x[1]),
+    true
+  );
+
+  // Gráfico de condiciones
+  actualizarChartCondiciones(data);
+
+  // Gráfico de prioridades
+  const prioridades = ["1","2","3","4"].map(p => [
+    etiquetasPrioridad[p],
+    data.filter(r => String(r.prioridad) === p).length
+  ]);
+
+   actualizarChart(
+    "chartPrioridades",
+    "bar",
+    prioridades.map(x=>x[0]),
+    prioridades.map(x=>x[1]),
+    false,
+    true
+  );
+
+  // Gráfico de subempresas
+  const resumenSubempresas = contarPor(
+    data,
+    "sub_empresa",
+    v => String(v || "").trim() || "Sin subempresa"
+  );
+
+  actualizarChart(
+    "chartSubempresas",
+    "bar",
+    resumenSubempresas.map(x=>x[0]),
+    resumenSubempresas.map(x=>x[1]),
+    true
+  );
 }
+
+function seleccionarReporteDesdeMapa(id) {
+  reporteSeleccionadoId = String(id);
+
+  document.getElementById("busqueda").value = "";
+
+  const reporte = reportesFiltrados.find(
+    r => String(r.id) === reporteSeleccionadoId
+  );
+
+  document.getElementById("mapSelectionHint").textContent =
+    reporte
+      ? `Reporte ${reporte.aparato || reporte.id} seleccionado; la tabla muestra únicamente este registro.`
+      : "Reporte seleccionado.";
+
+  actualizarTabla(reportesFiltrados);
+}
+
+function mostrarTodosLosReportes() {
+  reporteSeleccionadoId = null;
+
+  document.getElementById("mapSelectionHint").textContent =
+    "Se muestran todos los reportes que cumplen los filtros actuales.";
+
+  actualizarTabla(reportesFiltrados);
+}
+
+function enfocarReporteEnMapa(id) {
+  const marker = markersPorReporte.get(String(id));
+
+  if (!marker) {
+    mostrarMensaje(
+      "Este reporte no tiene coordenadas válidas para ubicarlo en el mapa.",
+      "error"
+    );
+    return;
+  }
+
+  const pos = marker.getLatLng();
+
+  map.setView(pos, Math.max(map.getZoom(),17), {animate:true});
+  marker.openPopup();
+
+  document.querySelectorAll("#tablaBody tr[data-reporte-id]").forEach(tr => {
+    tr.classList.toggle(
+      "fila-seleccionada",
+      tr.dataset.reporteId === String(id)
+    );
+  });
+}
+
+/*
+ * POPUP DEL MAPA
+ * Esta función faltaba en el código anterior.
+ * Ahora está definida antes de actualizarMapa().
+ */
 function popupHtml(r) {
-  const fotos = fotosReporte(r);
-  return `<div style="max-width:260px">
-    <b>📍 Reporte de medidor</b><br>
-    <b>Aparato:</b> ${textoSeguro(r.aparato)}<br>
-    <b>MRU:</b> ${textoSeguro(r.mru)}<br>
-    <b>Referencia:</b> ${textoSeguro(r.referencia)}<br>
-    <b>Condición:</b> ${textoSeguro(condicionTexto(r.condicion))}<br>
-    <b>Prioridad:</b> ${textoSeguro(prioridadTexto(r.prioridad))}<br>
-    <b>Usuario:</b> ${textoSeguro(r.usuario)}<br>
-    <b>Fecha:</b> ${textoSeguro(formatoFecha(r.fecha))}<br>
-    <b>Comentario:</b> ${textoSeguro(r.comentario)}
-    ${fotos.length ? `<br><b>Fotografías (${fotos.length}):</b>${fotos.map((foto,i)=>`<br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener">Abrir foto ${i+1}</a><br><a href="${textoSeguro(foto)}" target="_blank" rel="noopener"><img src="${textoSeguro(foto)}" alt="Fotografía ${i+1}" style="width:100%;max-width:220px;border-radius:7px;margin-top:5px"></a>`).join("")}` : ""}
-  </div>`;
+  return `
+    <div style="min-width:190px">
+      <strong>Medidor: ${textoSeguro(r.aparato || "Sin dato")}</strong>
+      <hr>
+      <div><strong>MRU:</strong> ${textoSeguro(r.mru || "—")}</div>
+      <div><strong>Condición:</strong> ${textoSeguro(condicionTexto(r.condicion))}</div>
+      <div><strong>Prioridad:</strong> ${textoSeguro(prioridadTexto(r.prioridad))}</div>
+      <div><strong>Usuario:</strong> ${textoSeguro(r.usuario || "—")}</div>
+      <div><strong>Fecha:</strong> ${textoSeguro(formatoFecha(r.fecha) || "—")}</div>
+      <div><strong>Comentario:</strong> ${textoSeguro(r.comentario || "—")}</div>
+    </div>
+  `;
 }
+
 function actualizarMapa(data) {
   markers.clearLayers();
+  markersPorReporte.clear();
+
   const bounds = [];
+
   data.forEach(r => {
-    const lat=Number(r.latitud), lon=Number(r.longitud);
-    if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat===0 || lon===0) return;
-    const marker=L.marker([lat,lon]).addTo(markers);
+    const lat = Number(r.latitud);
+    const lon = Number(r.longitud);
+
+    if (
+      !Number.isFinite(lat) ||
+      !Number.isFinite(lon) ||
+      lat === 0 ||
+      lon === 0 ||
+      !r.id
+    ) {
+      return;
+    }
+
+    const marker = L.marker([lat,lon]).addTo(markers);
+
     marker.bindPopup(popupHtml(r));
+
+    marker.on("click", () => {
+      seleccionarReporteDesdeMapa(r.id);
+    });
+
+    markersPorReporte.set(String(r.id),marker);
     bounds.push([lat,lon]);
   });
-  if (bounds.length) map.fitBounds(bounds,{padding:[25,25],maxZoom:16});
-  else map.setView([13.7,-89.2],10);
-  setTimeout(()=>map.invalidateSize(),100);
-}
-function celda(valor) { return `<td>${textoSeguro(valor)}</td>`; }
-function actualizarTabla(data) {
-  const busqueda=document.getElementById("busqueda").value.trim().toLocaleLowerCase("es");
-  const visibles=data.filter(r => [
-    r.aparato,r.mru,r.referencia,condicionTexto(r.condicion),prioridadTexto(r.prioridad),
-    r.comentario,r.latitud,r.longitud,r.usuario,formatoFecha(r.fecha),r.foto,
-    r.seguimiento_comentario,r.orden_sap,r.estado_sap,r.seguimiento_actualizado
-  ].some(v=>String(v ?? "").toLocaleLowerCase("es").includes(busqueda)));
-  visibles.sort((a,b)=>{
-    const x=a[orden.campo] ?? "", y=b[orden.campo] ?? "";
-    let cmp;
-    if (orden.campo==="fecha") cmp=String(x).localeCompare(String(y));
-    else if (orden.campo==="prioridad") cmp=(Number(x)||999)-(Number(y)||999);
-    else cmp=String(x).localeCompare(String(y),"es",{numeric:true,sensitivity:"base"});
-    return cmp*orden.direccion;
-  });
-  const tbody=document.getElementById("tablaBody");
-  if (!visibles.length) {
-    tbody.innerHTML='<tr><td class="empty" colspan="15">No hay reportes que coincidan con la consulta.</td></tr>';
+
+  if (bounds.length) {
+    map.fitBounds(bounds,{padding:[25,25],maxZoom:16});
   } else {
-    tbody.innerHTML=visibles.map(r=>{
-      const prioridad=String(r.prioridad ?? "");
+    map.setView([13.7,-89.2],10);
+  }
+
+  setTimeout(() => map.invalidateSize(),100);
+}
+
+function celda(valor) {
+  return `<td>${textoSeguro(valor)}</td>`;
+}
+
+function valorEfectividad(r) {
+  if (
+    r.efectivo === true ||
+    String(r.efectivo).toLowerCase() === "true"
+  ) {
+    return "true";
+  }
+
+  if (
+    r.efectivo === false ||
+    String(r.efectivo).toLowerCase() === "false"
+  ) {
+    return "false";
+  }
+
+  return "";
+}
+
+function textoEfectividad(r) {
+  const v = valorEfectividad(r);
+
+  return v === "true"
+    ? "Efectivo"
+    : v === "false"
+      ? "No efectivo"
+      : "Pendiente de evaluar";
+}
+
+function valorEstadoSeguimiento(r) {
+  const v = String(r.estado_seguimiento || "").toUpperCase();
+
+  return ["SIN_SEGUIMIENTO","PENDIENTE","RESUELTO"].includes(v)
+    ? v
+    : "SIN_SEGUIMIENTO";
+}
+
+function celdaEfectividad(r, esAdmin) {
+  const valor = valorEfectividad(r);
+
+  if (!esAdmin) {
+    return `<td class="metric-readonly">${textoSeguro(textoEfectividad(r))}</td>`;
+  }
+
+  return `<td>
+    <div class="metric-editor">
+      <select id="efectivo_${textoSeguro(r.id)}"
+              aria-label="Efectividad del reporte ${textoSeguro(r.id)}">
+        <option value="" ${valor===""?"selected":""}>Pendiente de evaluar</option>
+        <option value="true" ${valor==="true"?"selected":""}>Efectivo</option>
+        <option value="false" ${valor==="false"?"selected":""}>No efectivo</option>
+      </select>
+    </div>
+  </td>`;
+}
+
+function celdaEnergia(r, esAdmin) {
+  const valor = r.energia_recuperada_kwh;
+
+  if (!esAdmin) {
+    return `<td class="metric-readonly">${
+      valor !== null && valor !== undefined && valor !== ""
+        ? textoSeguro(valor) + " kWh"
+        : "—"
+    }</td>`;
+  }
+
+  return `<td>
+    <div class="metric-editor">
+      <input id="energia_${textoSeguro(r.id)}"
+             type="number"
+             min="0"
+             step="0.01"
+             inputmode="decimal"
+             aria-label="Energía recuperada en kWh del reporte ${textoSeguro(r.id)}"
+             placeholder="kWh recuperados"
+             value="${valor !== null && valor !== undefined ? textoSeguro(valor) : ""}">
+    </div>
+  </td>`;
+}
+
+function celdaEstadoSeguimiento(r, esAdmin) {
+  const valor = valorEstadoSeguimiento(r);
+
+  const etiquetas = {
+    SIN_SEGUIMIENTO:"Sin seguimiento",
+    PENDIENTE:"⚑ Pendiente",
+    RESUELTO:"Resuelto"
+  };
+
+  if (!esAdmin) {
+    return `<td class="metric-readonly">${textoSeguro(etiquetas[valor])}</td>`;
+  }
+
+  return `<td>
+    <div class="metric-editor">
+      <select id="seguimiento_estado_${textoSeguro(r.id)}"
+              aria-label="Bandera de seguimiento del reporte ${textoSeguro(r.id)}">
+        <option value="SIN_SEGUIMIENTO" ${valor==="SIN_SEGUIMIENTO"?"selected":""}>Sin seguimiento</option>
+        <option value="PENDIENTE" ${valor==="PENDIENTE"?"selected":""}>⚑ Pendiente</option>
+        <option value="RESUELTO" ${valor==="RESUELTO"?"selected":""}>Resuelto</option>
+      </select>
+    </div>
+  </td>`;
+}
+
+function actualizarTabla(data) {
+  const busqueda = document.getElementById("busqueda")
+    .value.trim().toLocaleLowerCase("es");
+
+  const visibles = data.filter(r =>
+    (!reporteSeleccionadoId || String(r.id) === reporteSeleccionadoId) &&
+    [
+      r.aparato,
+      r.mru,
+      r.referencia,
+      condicionTexto(r.condicion),
+      prioridadTexto(r.prioridad),
+      r.comentario,
+      r.latitud,
+      r.longitud,
+      r.usuario,
+      formatoFecha(r.fecha),
+      r.foto,
+      r.seguimiento_comentario,
+      r.orden_sap,
+      r.estado_sap,
+      r.seguimiento_actualizado,
+      textoEfectividad(r),
+      r.energia_recuperada_kwh,
+      valorEstadoSeguimiento(r)
+    ].some(v =>
+      String(v ?? "").toLocaleLowerCase("es").includes(busqueda)
+    )
+  );
+
+  visibles.sort((a,b) => {
+    const x = a[orden.campo] ?? "";
+    const y = b[orden.campo] ?? "";
+
+    let cmp;
+
+    if (orden.campo === "fecha") {
+      cmp = String(x).localeCompare(String(y));
+    } else if (orden.campo === "prioridad") {
+      cmp = (Number(x)||999) - (Number(y)||999);
+    } else {
+      cmp = String(x).localeCompare(
+        String(y),
+        "es",
+        {numeric:true,sensitivity:"base"}
+      );
+    }
+
+    return cmp * orden.direccion;
+  });
+
+  const tbody = document.getElementById("tablaBody");
+
+  if (!visibles.length) {
+    tbody.innerHTML =
+      '<tr><td class="empty" colspan="18">No hay reportes que coincidan con la consulta.</td></tr>';
+  } else {
+    tbody.innerHTML = visibles.map(r => {
+      const prioridad = String(r.prioridad ?? "");
       const esAdmin = document.body.dataset.admin === "true";
-      return `<tr>
+
+      return `<tr data-reporte-id="${textoSeguro(r.id)}"
+                  class="${reporteSeleccionadoId===String(r.id)?"fila-seleccionada":""}"
+                  title="Selecciona para ubicar este reporte en el mapa">
+
         ${celda(r.aparato)}
         ${celda(r.mru)}
         ${celda(r.referencia)}
-        <td><span class="pill">${textoSeguro(condicionTexto(r.condicion))}</span></td>
-        <td><span class="pill priority-${textoSeguro(prioridad)}">${textoSeguro(prioridadTexto(r.prioridad))}</span></td>
+
+        <td>
+          <span class="pill">${textoSeguro(condicionTexto(r.condicion))}</span>
+        </td>
+
+        <td>
+          <span class="pill priority-${textoSeguro(prioridad)}">
+            ${textoSeguro(prioridadTexto(r.prioridad))}
+          </span>
+        </td>
+
         ${celda(r.comentario)}
         ${celda(r.latitud)}
         ${celda(r.longitud)}
         ${celda(r.usuario)}
         ${celda(formatoFecha(r.fecha))}
+
         <td>${fotosHtml(r)}</td>
-        <td class="col-seguimiento">${esAdmin ? `<div class="followup-editor"><textarea id="seg_${r.id}" aria-label="Seguimiento del reporte ${r.id}" placeholder="Acción o comentario del analista">${textoSeguro(r.seguimiento_comentario || "")}</textarea><input id="sap_${r.id}" aria-label="Orden SAP del reporte ${r.id}" placeholder="Número de orden SAP" value="${textoSeguro(r.orden_sap || "")}"><select id="estado_${r.id}" aria-label="Estado SAP del reporte ${r.id}"><option value="">Seleccionar estado SAP</option>${Object.keys(etiquetasEstadoSAP).map(e=>`<option value="${textoSeguro(e)}" ${r.estado_sap===e?"selected":""}>${textoSeguro(e)}</option>`).join("")}</select><button class="btn-primary btn-small" type="button" onclick="guardarSeguimiento(${Number(r.id)})">Guardar seguimiento</button><button class="history-btn btn-small" type="button" onclick="verHistorial(${Number(r.id)})">Ver historial</button></div>` : (r.seguimiento_comentario ? textoSeguro(r.seguimiento_comentario) : '<span class="seguimiento-vacio">Sin seguimiento</span>')}</td>
+
+        <td class="col-seguimiento">
+          ${
+            esAdmin
+              ? `<div class="followup-editor">
+                  <textarea id="seg_${r.id}"
+                            aria-label="Seguimiento del reporte ${r.id}"
+                            placeholder="Acción o comentario del analista">${textoSeguro(r.seguimiento_comentario || "")}</textarea>
+
+                  <input id="sap_${r.id}"
+                         aria-label="Orden SAP del reporte ${r.id}"
+                         placeholder="Número de orden SAP"
+                         value="${textoSeguro(r.orden_sap || "")}">
+
+                  <select id="estado_${r.id}"
+                          aria-label="Estado SAP del reporte ${r.id}">
+                    <option value="">Seleccionar estado SAP</option>
+                    ${
+                      Object.keys(etiquetasEstadoSAP).map(e =>
+                        `<option value="${textoSeguro(e)}" ${r.estado_sap===e?"selected":""}>${textoSeguro(e)}</option>`
+                      ).join("")
+                    }
+                  </select>
+
+                  <button class="btn-primary btn-small"
+                          type="button"
+                          onclick="guardarSeguimiento(${Number(r.id)})">
+                    Guardar seguimiento
+                  </button>
+
+                  <button class="history-btn btn-small"
+                          type="button"
+                          onclick="verHistorial(${Number(r.id)})">
+                    Ver historial
+                  </button>
+                </div>`
+              : (
+                  r.seguimiento_comentario
+                    ? textoSeguro(r.seguimiento_comentario)
+                    : '<span class="seguimiento-vacio">Sin seguimiento</span>'
+                )
+          }
+        </td>
+
+        ${celdaEfectividad(r,esAdmin)}
+        ${celdaEnergia(r,esAdmin)}
+        ${celdaEstadoSeguimiento(r,esAdmin)}
+
         <td>${r.orden_sap ? textoSeguro(r.orden_sap) : "—"}</td>
-        <td>${r.estado_sap ? `<span class="sap-estado ${claseEstadoSAP(r.estado_sap)}">${textoSeguro(estadoSAPTexto(r.estado_sap) || r.estado_sap)}</span>` : "—"}</td>
-        <td>${r.seguimiento_actualizado ? textoSeguro(formatoFecha(r.seguimiento_actualizado)) : "—"}</td>
+
+        <td>
+          ${
+            r.estado_sap
+              ? `<span class="sap-estado ${claseEstadoSAP(r.estado_sap)}">${textoSeguro(estadoSAPTexto(r.estado_sap) || r.estado_sap)}</span>`
+              : "—"
+          }
+        </td>
+
+        <td>
+          ${r.seguimiento_actualizado ? textoSeguro(formatoFecha(r.seguimiento_actualizado)) : "—"}
+        </td>
+
       </tr>`;
     }).join("");
   }
-  document.getElementById("conteoTabla").textContent=`Mostrando ${visibles.length.toLocaleString("es")} de ${data.length.toLocaleString("es")} reportes`;
+
+  document.getElementById("conteoTabla").textContent =
+    `Mostrando ${visibles.length.toLocaleString("es")} de ${data.length.toLocaleString("es")} reportes`;
+
+  tbody.querySelectorAll("tr[data-reporte-id]").forEach(tr => {
+    tr.addEventListener("click",ev => {
+      if (ev.target.closest("button,a,input,textarea,select")) return;
+      enfocarReporteEnMapa(tr.dataset.reporteId);
+    });
+  });
+
   configurarScrollSuperior();
 }
+
 function actualizarVista() {
   actualizarResumen(reportesFiltrados);
   actualizarMapa(reportesFiltrados);
   actualizarTabla(reportesFiltrados);
-  document.getElementById("estadoCarga").textContent=`Consulta lista: ${reportesFiltrados.length.toLocaleString("es")} reporte(s).`;
+
+  document.getElementById("estadoCarga").textContent =
+    `Consulta lista: ${reportesFiltrados.length.toLocaleString("es")} reporte(s).`;
 }
-async function cargarReportes() {
-  const estado=document.getElementById("estadoCarga");
-  estado.textContent="Cargando reportes…";
-  document.getElementById("btnFiltrar").disabled=true;
+
+/*
+ * CONSULTA DEL TOTAL DE USUARIOS ACTIVOS
+ */
+async function cargarTotalUsuariosActivos() {
+  if (document.body.dataset.admin !== "true") return;
+
   try {
-    const response=await fetch("/api/reportes");
-    if (!response.ok) throw new Error(`El servidor respondió ${response.status}.`);
-    const data=await response.json();
-    if (!Array.isArray(data)) throw new Error(data.error || "La respuesta del servidor no tiene el formato esperado.");
-    reportes=data;
+    const response = await fetch("/api/reportes/total_usuarios");
+
+    if (!response.ok) {
+      throw new Error("No se pudo consultar el total de usuarios.");
+    }
+
+    const data = await response.json();
+
+    if (
+      data.total_usuarios === null ||
+      data.total_usuarios === undefined ||
+      !Number.isFinite(Number(data.total_usuarios))
+    ) {
+      throw new Error("La respuesta no contiene un total de usuarios válido.");
+    }
+
+    totalUsuariosActivos = Number(data.total_usuarios);
+
+  } catch (error) {
+    console.error("Error consultando usuarios activos:", error);
+    totalUsuariosActivos = null;
+  }
+}
+
+async function cargarReportes() {
+  const estado = document.getElementById("estadoCarga");
+
+  estado.textContent = "Cargando reportes…";
+  document.getElementById("btnFiltrar").disabled = true;
+
+  try {
+    const response = await fetch("/api/reportes");
+
+    if (!response.ok) {
+      throw new Error(`El servidor respondió ${response.status}.`);
+    }
+
+    const data = await response.json();
+
+    if (!Array.isArray(data)) {
+      throw new Error(
+        data.error || "La respuesta del servidor no tiene el formato esperado."
+      );
+    }
+
+    reportes = data;
+
     poblarUsuarios(reportes);
+    poblarEmpresas(reportes);
+
+    /*
+     * Primero se consulta el total de usuarios activos.
+     * Después se aplican los filtros y se actualizan los KPI.
+     */
+    await cargarTotalUsuariosActivos();
+
     aplicarFiltrosLocales();
+
   } catch (e) {
     console.error(e);
-    estado.textContent="No se pudieron cargar los reportes. Revisa la sesión y la conexión con el servidor.";
-    document.getElementById("tablaBody").innerHTML=`<tr><td class="empty" colspan="15">${textoSeguro(e.message)}</td></tr>`;
+
+    estado.textContent =
+      "No se pudieron cargar los reportes. Revisa la sesión y la conexión con el servidor.";
+
+    document.getElementById("tablaBody").innerHTML =
+      `<tr><td class="empty" colspan="18">${textoSeguro(e.message)}</td></tr>`;
+
   } finally {
-    document.getElementById("btnFiltrar").disabled=false;
+    document.getElementById("btnFiltrar").disabled = false;
   }
 }
+
 function mostrarMensaje(texto, tipo="ok") {
-  const el=document.getElementById("mensajeAccion");
-  el.className=tipo; el.textContent=texto; el.style.display="block";
-  window.setTimeout(()=>{el.style.display="none";},6000);
+  const el = document.getElementById("mensajeAccion");
+
+  el.className = tipo;
+  el.textContent = texto;
+  el.style.display = "block";
+
+  window.setTimeout(() => {
+    el.style.display = "none";
+  },6000);
 }
+
 async function guardarSeguimiento(id) {
-  const boton = document.querySelector(`button[onclick="guardarSeguimiento(${id})"]`);
+  const boton = document.querySelector(
+    `button[onclick="guardarSeguimiento(${id})"]`
+  );
+
   const payload = {
-    seguimiento_comentario: document.getElementById(`seg_${id}`)?.value || "",
-    orden_sap: document.getElementById(`sap_${id}`)?.value || "",
-    estado_sap: document.getElementById(`estado_${id}`)?.value || ""
+    seguimiento_comentario:
+      document.getElementById(`seg_${id}`)?.value || "",
+
+    orden_sap:
+      document.getElementById(`sap_${id}`)?.value || "",
+
+    estado_sap:
+      document.getElementById(`estado_${id}`)?.value || ""
   };
-  if (!payload.estado_sap) { mostrarMensaje("Selecciona un estado SAP antes de guardar el seguimiento.","error"); return; }
-  if (boton) { boton.disabled=true; boton.textContent="Guardando…"; }
+
+  if (!payload.estado_sap) {
+    mostrarMensaje(
+      "Selecciona un estado SAP antes de guardar el seguimiento.",
+      "error"
+    );
+    return;
+  }
+
+  if (boton) {
+    boton.disabled = true;
+    boton.textContent = "Guardando…";
+  }
+
   try {
-    const response=await fetch(`/api/reportes/${id}/seguimiento`, {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
-    const data=await response.json();
-    if (!response.ok) throw new Error(data.error || `Error ${response.status}`);
+    const response = await fetch(
+      `/api/reportes/${id}/seguimiento`,
+      {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || `Error ${response.status}`);
+    }
+
     mostrarMensaje(data.mensaje || "Seguimiento guardado correctamente.");
+
     await cargarReportes();
+
   } catch (e) {
-    mostrarMensaje(e.message || "No se pudo guardar el seguimiento.","error");
+    mostrarMensaje(
+      e.message || "No se pudo guardar el seguimiento.",
+      "error"
+    );
+
   } finally {
-    if (boton) { boton.disabled=false; boton.textContent="Guardar seguimiento"; }
+    if (boton) {
+      boton.disabled = false;
+      boton.textContent = "Guardar seguimiento";
+    }
   }
 }
+
 async function verHistorial(id) {
-  const modal=document.getElementById("modalHistorial");
-  const contenido=document.getElementById("contenidoHistorial");
-  document.getElementById("tituloHistorial").textContent=`Historial de gestiones · Reporte ${id}`;
-  contenido.textContent="Cargando historial…"; modal.style.display="flex";
+  const modal = document.getElementById("modalHistorial");
+  const contenido = document.getElementById("contenidoHistorial");
+
+  document.getElementById("tituloHistorial").textContent =
+    `Historial de gestiones · Reporte ${id}`;
+
+  contenido.textContent = "Cargando historial…";
+  modal.style.display = "flex";
+
   try {
-    const response=await fetch(`/api/reportes/${id}/historial`);
-    const data=await response.json();
-    if (!response.ok) throw new Error(data.error || "No se pudo consultar el historial.");
-    if (!Array.isArray(data) || !data.length) { contenido.innerHTML='<div class="history-entry">Este reporte aún no tiene gestiones registradas.</div>'; return; }
-    contenido.innerHTML=data.map(h=>`<div class="history-entry"><strong>${textoSeguro(h.accion || "Gestión")}</strong><div style="margin-top:5px;color:#475569">Usuario: ${textoSeguro(h.usuario_gestion || "—")} · ${textoSeguro(formatoFecha(h.fecha_gestion) || "Sin fecha")}</div><div style="margin-top:7px">${textoSeguro(h.comentario || "Sin comentario")}</div><div style="margin-top:5px">Orden SAP: ${textoSeguro(h.orden_sap || "—")} · Estado: ${textoSeguro(h.estado_sap || "—")}</div></div>`).join("");
-  } catch(e) { contenido.textContent=e.message || "Error consultando historial."; }
-}
-function cerrarHistorial() { document.getElementById("modalHistorial").style.display="none"; }
-let scrollSuperiorConfigurado=false;
-function configurarScrollSuperior() {
-  const superior=document.getElementById("scrollTopTabla");
-  const interior=document.getElementById("scrollTopInner");
-  const tabla=document.getElementById("tableScroll");
-  if (!superior || !interior || !tabla) return;
-  const ajustar=()=>{interior.style.width=tabla.scrollWidth+"px"; superior.scrollLeft=tabla.scrollLeft;};
-  if (!scrollSuperiorConfigurado) {
-    let sincronizando=false;
-    superior.addEventListener("scroll",()=>{if(sincronizando)return;sincronizando=true;tabla.scrollLeft=superior.scrollLeft;sincronizando=false;});
-    tabla.addEventListener("scroll",()=>{if(sincronizando)return;sincronizando=true;superior.scrollLeft=tabla.scrollLeft;sincronizando=false;});
-    if (window.ResizeObserver) new ResizeObserver(ajustar).observe(tabla);
-    window.addEventListener("resize",ajustar);
-    scrollSuperiorConfigurado=true;
+    const response = await fetch(`/api/reportes/${id}/historial`);
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "No se pudo consultar el historial.");
+    }
+
+    if (!Array.isArray(data) || !data.length) {
+      contenido.innerHTML =
+        '<div class="history-entry">Este reporte aún no tiene gestiones registradas.</div>';
+      return;
+    }
+
+    contenido.innerHTML = data.map(h => `
+      <div class="history-entry">
+        <strong>${textoSeguro(h.accion || "Gestión")}</strong>
+
+        <div style="margin-top:5px;color:#475569">
+          Usuario: ${textoSeguro(h.usuario_gestion || "—")}
+          · ${textoSeguro(formatoFecha(h.fecha_gestion) || "Sin fecha")}
+        </div>
+
+        <div style="margin-top:7px">
+          ${textoSeguro(h.comentario || "Sin comentario")}
+        </div>
+
+        <div style="margin-top:5px">
+          Orden SAP: ${textoSeguro(h.orden_sap || "—")}
+          · Estado: ${textoSeguro(h.estado_sap || "—")}
+        </div>
+      </div>
+    `).join("");
+
+  } catch(e) {
+    contenido.textContent =
+      e.message || "Error consultando historial.";
   }
+}
+
+function cerrarHistorial() {
+  document.getElementById("modalHistorial").style.display = "none";
+}
+
+let scrollSuperiorConfigurado = false;
+
+function configurarScrollSuperior() {
+  const superior = document.getElementById("scrollTopTabla");
+  const interior = document.getElementById("scrollTopInner");
+  const tabla = document.getElementById("tableScroll");
+
+  if (!superior || !interior || !tabla) return;
+
+  const ajustar = () => {
+    interior.style.width = tabla.scrollWidth + "px";
+    superior.scrollLeft = tabla.scrollLeft;
+  };
+
+  if (!scrollSuperiorConfigurado) {
+    let sincronizando = false;
+
+    superior.addEventListener("scroll",() => {
+      if (sincronizando) return;
+
+      sincronizando = true;
+      tabla.scrollLeft = superior.scrollLeft;
+      sincronizando = false;
+    });
+
+    tabla.addEventListener("scroll",() => {
+      if (sincronizando) return;
+
+      sincronizando = true;
+      superior.scrollLeft = tabla.scrollLeft;
+      sincronizando = false;
+    });
+
+    if (window.ResizeObserver) {
+      new ResizeObserver(ajustar).observe(tabla);
+    }
+
+    window.addEventListener("resize",ajustar);
+    scrollSuperiorConfigurado = true;
+  }
+
   ajustar();
 }
+
 function exportar() {
-  window.location.href=urlConFiltros("/admin/exportar_reportes");
+  window.location.href = urlConFiltros("/admin/exportar_reportes");
 }
-document.getElementById("btnFiltrar").addEventListener("click",aplicarFiltrosLocales);
-document.getElementById("btnLimpiar").addEventListener("click",()=>{
-  ["f_inicio","f_fin","f_usuario","f_condicion","f_prioridad","busqueda"].forEach(id=>document.getElementById(id).value="");
+
+/* Eventos de filtros */
+
+document.getElementById("btnFiltrar").addEventListener("click",() => {
+  reporteSeleccionadoId = null;
   aplicarFiltrosLocales();
 });
-const btnExportar=document.getElementById("btnExportar");
-if (btnExportar) btnExportar.addEventListener("click",exportar);
-document.getElementById("busqueda").addEventListener("input",()=>actualizarTabla(reportesFiltrados));
-document.querySelectorAll("button.sort").forEach(btn=>btn.addEventListener("click",()=>{
-  const campo=btn.dataset.sort;
-  if (orden.campo===campo) orden.direccion*=-1;
-  else {orden.campo=campo; orden.direccion=campo==="fecha"?-1:1;}
-  document.querySelectorAll("button.sort").forEach(b=>b.textContent=b.textContent.replace(/[↑↓↕]/g,"↕"));
-  btn.textContent=btn.textContent.replace("↕",orden.direccion===1?"↑":"↓");
+
+document.getElementById("f_empresa").addEventListener("change",() => {
+  poblarSubempresas(reportes);
+  aplicarFiltrosLocales();
+});
+
+document.getElementById("f_subempresa").addEventListener("change",() => {
+  aplicarFiltrosLocales();
+});
+
+document.getElementById("f_efectividad").addEventListener("change",() => {
+  aplicarFiltrosLocales();
+});
+
+document.getElementById("btnMostrarTodos").addEventListener(
+  "click",
+  mostrarTodosLosReportes
+);
+
+document.getElementById("btnLimpiar").addEventListener("click",() => {
+  [
+    "f_inicio",
+    "f_fin",
+    "f_usuario",
+    "f_condicion",
+    "f_prioridad",
+    "f_empresa",
+    "f_subempresa",
+    "f_efectividad",
+    "busqueda"
+  ].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+
+  poblarSubempresas(reportes);
+
+  reporteSeleccionadoId = null;
+
+  document.getElementById("mapSelectionHint").textContent =
+    "Se muestran todos los reportes que cumplen los filtros actuales.";
+
+  aplicarFiltrosLocales();
+});
+
+const btnExportar = document.getElementById("btnExportar");
+
+if (btnExportar) {
+  btnExportar.addEventListener("click",exportar);
+}
+
+document.getElementById("busqueda").addEventListener("input",() => {
+  reporteSeleccionadoId = null;
+
+  document.getElementById("mapSelectionHint").textContent =
+    "Búsqueda aplicada a los reportes filtrados.";
+
   actualizarTabla(reportesFiltrados);
-}));
+});
+
+document.querySelectorAll("button.sort").forEach(btn => {
+  btn.addEventListener("click",() => {
+    const campo = btn.dataset.sort;
+
+    if (orden.campo === campo) {
+      orden.direccion *= -1;
+    } else {
+      orden.campo = campo;
+      orden.direccion = campo === "fecha" ? -1 : 1;
+    }
+
+    document.querySelectorAll("button.sort").forEach(b => {
+      b.textContent = b.textContent.replace(/[↑↓↕]/g,"↕");
+    });
+
+    btn.textContent = btn.textContent.replace(
+      "↕",
+      orden.direccion === 1 ? "↑" : "↓"
+    );
+
+    actualizarTabla(reportesFiltrados);
+  });
+});
+
+/* Carga inicial */
 cargarReportes();
+
+// =====================================================
+// GUARDADO AUTOMATICO DE EFECTIVIDAD Y ENERGIA
+// =====================================================
+
+async function guardarEfectividad(id) {
+
+    const efectivoControl = document.getElementById(`efectivo_${id}`);
+    const energiaControl = document.getElementById(`energia_${id}`);
+
+    if (!efectivoControl || !energiaControl) {
+        alert("No se encontraron los campos de evaluación.");
+        return;
+    }
+
+    const valorEfectivo = efectivoControl.value;
+
+    const efectivo = valorEfectivo === ""
+        ? null
+        : valorEfectivo === "true";
+
+    const energia = energiaControl.value.trim() === ""
+        ? null
+        : energiaControl.value.trim();
+
+    try {
+
+        const respuesta = await fetch(
+            `/api/reportes/${id}/efectividad`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    efectivo: efectivo,
+                    energia_recuperada_kwh: energia
+                })
+            }
+        );
+
+        const resultado = await respuesta.json();
+
+        if (!respuesta.ok) {
+            throw new Error(resultado.error || "No se pudo guardar.");
+        }
+
+        const reporte = reportes.find(r => Number(r.id) === Number(id));
+
+        if (reporte) {
+    reporte.efectivo = efectivo;
+    reporte.energia_recuperada_kwh = energia;
+}
+
+aplicarFiltrosLocales();
+
+mostrarMensaje(
+    "Efectividad y energía guardadas correctamente."
+);
+          
+
+    } catch (error) {
+
+        alert("Error al guardar la evaluación: " + error.message);
+
+    }
+}
+
+
+// =====================================================
+// GUARDADO AUTOMATICO DE BANDERA DE SEGUIMIENTO
+// =====================================================
+
+async function guardarBandera(id) {
+
+    const control = document.getElementById(`seguimiento_estado_${id}`);
+
+    if (!control) {
+        alert("No se encontró la bandera de seguimiento.");
+        return;
+    }
+
+    try {
+
+        const respuesta = await fetch(
+            `/api/reportes/${id}/bandera`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    estado_seguimiento: control.value
+                })
+            }
+        );
+
+        const resultado = await respuesta.json();
+
+        if (!respuesta.ok) {
+            throw new Error(resultado.error || "No se pudo guardar.");
+        }
+
+        const reporte = reportes.find(r => Number(r.id) === Number(id));
+
+        if (reporte) {
+    reporte.estado_seguimiento = control.value;
+}
+
+aplicarFiltrosLocales();
+
+mostrarMensaje(
+    "Bandera de seguimiento guardada correctamente."
+);
+        
+
+    } catch (error) {
+
+        alert("Error al guardar la bandera: " + error.message);
+
+    }
+}
+
+
+// =====================================================
+// CONECTAR LOS CONTROLES EXISTENTES
+// =====================================================
+
+document.addEventListener("change", function(event) {
+
+    const idControl = event.target.id || "";
+
+    let coincidencia;
+
+    coincidencia = idControl.match(/^efectivo_(\d+)$/);
+
+    if (coincidencia) {
+        guardarEfectividad(coincidencia[1]);
+        return;
+    }
+
+    coincidencia = idControl.match(/^energia_(\d+)$/);
+
+    if (coincidencia) {
+        guardarEfectividad(coincidencia[1]);
+        return;
+    }
+
+    coincidencia = idControl.match(/^seguimiento_estado_(\d+)$/);
+
+    if (coincidencia) {
+        guardarBandera(coincidencia[1]);
+    }
+
+});
+
 </script>
 </body>
 </html>

@@ -3,11 +3,13 @@ import psycopg2
 import psycopg2.extras
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timedelta
+from werkzeug.middleware.proxy_fix import ProxyFix
 from functools import wraps
 import csv
 import io
 import os
 import json
+from decimal import Decimal, InvalidOperation
 import cloudinary
 import cloudinary.uploader
 from dotenv import load_dotenv
@@ -25,6 +27,7 @@ cloudinary.config(
 )
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1)
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -39,8 +42,10 @@ os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
+
 def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def upload_to_cloudinary(file):
     try:
@@ -53,6 +58,7 @@ def upload_to_cloudinary(file):
         print("Error Cloudinary:", e)
         return None
 
+
 # ---------------- DB ----------------
 
 def get_db():
@@ -62,20 +68,26 @@ def get_db():
         cursor_factory=psycopg2.extras.RealDictCursor
     )
 
+
 # ---------------- HELPERS ----------------
 
 def get_ip():
-    return request.headers.get('X-Forwarded-For', request.remote_addr)
+    return request.remote_addr or "IP_DESCONOCIDA"
+
 
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if "usuario" not in session:
             return redirect(url_for("login"))
+
         if session.get("rol") != "admin":
             abort(403)
+
         return f(*args, **kwargs)
+
     return decorated_function
+
 
 def usuario_required(f):
     @wraps(f)
@@ -91,23 +103,92 @@ def usuario_required(f):
 
     return decorated_function
 
+
+# ---------------- HELPERS NUEVOS: EFECTIVIDAD ----------------
+
+def convertir_booleano_nulo(valor):
+    """
+    Acepta True, False o None.
+    También acepta textos true/false para compatibilidad.
+    Rechaza cualquier otro valor.
+    """
+    if valor is None:
+        return None
+
+    if isinstance(valor, bool):
+        return valor
+
+    if isinstance(valor, str):
+        valor = valor.strip().lower()
+
+        if valor in ("true", "1", "si", "sí"):
+            return True
+
+        if valor in ("false", "0", "no"):
+            return False
+
+        if valor == "":
+            return None
+
+    raise ValueError("El valor de efectividad no es válido.")
+
+
+def convertir_energia(valor):
+    """
+    Convierte la energía recuperada a Decimal.
+    Permite None o un número mayor o igual a cero.
+    """
+    if valor is None or valor == "":
+        return None
+
+    if isinstance(valor, bool):
+        raise ValueError("La energía recuperada debe ser numérica.")
+
+    try:
+        energia = Decimal(str(valor))
+    except (InvalidOperation, ValueError, TypeError):
+        raise ValueError("La energía recuperada debe ser numérica.")
+
+    if not energia.is_finite():
+        raise ValueError("La energía recuperada no es válida.")
+
+    if energia < 0:
+        raise ValueError("La energía recuperada no puede ser negativa.")
+
+    return energia
+
+
+ESTADOS_SEGUIMIENTO_VALIDOS = {
+    "SIN_SEGUIMIENTO",
+    "PENDIENTE",
+    "RESUELTO"
+}
+
+
 # ---------------- INDEX ----------------
 
 @app.route("/")
 def index():
+
     if "usuario" not in session:
         return redirect(url_for("login"))
 
     if session.get("rol") == "admin":
         return redirect(url_for("dashboard"))
 
-    return render_template("mapa.html", usuario=session["usuario"])
+    return render_template(
+        "mapa.html",
+        usuario=session["usuario"]
+    )
+
 
 # ---------------- LOGIN ----------------
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
+
     if request.method == "POST":
+
         usuario = request.form["usuario"]
         password = request.form["password"]
         ip = get_ip()
@@ -116,35 +197,57 @@ def login():
         cur = conn.cursor()
 
         try:
-            cur.execute("SELECT * FROM intentos_login WHERE ip = %s", (ip,))
+
+            cur.execute("""
+                SELECT *
+                FROM intentos_login
+                WHERE ip = %s
+            """, (ip,))
+
             intento = cur.fetchone()
 
             if intento and intento["bloqueado_hasta"]:
+
                 if datetime.now() < intento["bloqueado_hasta"]:
+
                     flash("IP bloqueada")
                     return redirect(url_for("login"))
 
-            cur.execute("SELECT * FROM usuarios_sistema WHERE usuario = %s", (usuario,))
+            cur.execute("""
+                SELECT *
+                FROM usuarios_sistema
+                WHERE usuario = %s
+            """, (usuario,))
+
             user = cur.fetchone()
 
             if not user:
+
                 registrar_intento(ip, conn)
                 flash("Usuario o contraseña incorrectos")
+
                 return redirect(url_for("login"))
 
             if user["estado"] == "bloqueado":
+
                 flash("Usuario bloqueado")
                 return redirect(url_for("login"))
 
             if not check_password_hash(user["contrasena"], password):
+
                 registrar_intento(ip, conn)
                 flash("Usuario o contraseña incorrectos")
+
                 return redirect(url_for("login"))
 
             limpiar_intentos(ip, conn)
 
             session["usuario"] = user["usuario"]
             session["rol"] = user["rol"]
+
+            # NUEVO: empresa y subempresa del usuario.
+            session["empresa"] = user.get("empresa")
+            session["sub_empresa"] = user.get("sub_empresa")
 
             return redirect(url_for("index"))
 
@@ -153,25 +256,38 @@ def login():
 
     return render_template("login.html")
 
+
 @app.route("/dashboard")
 @admin_required
 def dashboard():
-    return render_template("dashboard.html", usuario=session["usuario"], rol=session["rol"])
+
+    return render_template(
+        "dashboard.html",
+        usuario=session["usuario"],
+        rol=session["rol"]
+    )
+
 
 # ---------------- LOGOUT ----------------
 
 @app.route("/logout")
 def logout():
+
     session.clear()
+
     return redirect(url_for("login"))
+
 
 # ---------------- VER REPORTES ----------------
 
 @app.route("/ver_reportes")
 def ver_reportes():
+
     if "usuario" not in session:
         return redirect(url_for("login"))
+
     return render_template("ver_reportes.html")
+
 
 # ---------------- REVISIONES ----------------
 
@@ -185,10 +301,10 @@ def revisiones():
     try:
 
         cur.execute("""
-            SELECT usuario,nombre
+            SELECT usuario, nombre
             FROM usuarios_sistema
-            WHERE estado='activo'
-             AND rol <> 'admin'
+            WHERE estado = 'activo'
+              AND rol <> 'admin'
             ORDER BY nombre
         """)
 
@@ -198,24 +314,27 @@ def revisiones():
         conn.close()
 
     return render_template(
-    "revisiones.html",
-    usuarios=usuarios,
-    encontrados=[],
-    no_encontrados=[],
-    total=0
-)
+        "revisiones.html",
+        usuarios=usuarios,
+        encontrados=[],
+        no_encontrados=[],
+        total=0
+    )
 
 
 # ---------------- CLIENTES ----------------
 
 @app.route("/api/clientes")
+@usuario_required
 def api_clientes():
+
     serial = request.args.get("serial")
 
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         if serial:
             cur.execute("""
                 SELECT serialnumber, latitude, longitude, mru
@@ -233,6 +352,7 @@ def api_clientes():
 
     finally:
         conn.close()
+
 
 # ---------------- RUTA MRU ----------------
 
@@ -276,7 +396,7 @@ def api_mru_ruta():
 
     finally:
         conn.close()
-# ---------------- REVISIONES USUARIO ----------------
+        # ---------------- REVISIONES USUARIO ----------------
 
 @app.route("/api/mis_revisiones")
 @usuario_required
@@ -290,13 +410,10 @@ def api_mis_revisiones():
         cur.execute("""
             SELECT COUNT(*) AS cantidad
             FROM ordenes_trabajo
-            WHERE usuario=%s
-            AND tipo='Revision'
-            AND estado='Pendiente'
-        """,
-        (
-            session["usuario"],
-        ))
+            WHERE usuario = %s
+              AND tipo = 'Revision'
+              AND estado = 'Pendiente'
+        """, (session["usuario"],))
 
         resultado = cur.fetchone()
 
@@ -313,8 +430,8 @@ def api_mis_revisiones():
         }
 
     finally:
-
         conn.close()
+
 
 # ---------------- RUTA REVISIONES ASIGNADAS ----------------
 
@@ -328,7 +445,7 @@ def api_ruta_revisiones():
     try:
 
         cur.execute("""
-           SELECT
+            SELECT
                 id,
                 instalacion,
                 serialnumber,
@@ -336,17 +453,14 @@ def api_ruta_revisiones():
                 latitud,
                 longitud,
                 estado
-                FROM ordenes_trabajo
-            WHERE usuario=%s
-            AND tipo='Revision'
-            AND estado='Pendiente'
-            AND latitud IS NOT NULL
-            AND longitud IS NOT NULL
+            FROM ordenes_trabajo
+            WHERE usuario = %s
+              AND tipo = 'Revision'
+              AND estado = 'Pendiente'
+              AND latitud IS NOT NULL
+              AND longitud IS NOT NULL
             ORDER BY id
-        """,
-        (
-            session["usuario"],
-        ))
+        """, (session["usuario"],))
 
         datos = cur.fetchall()
 
@@ -359,8 +473,8 @@ def api_ruta_revisiones():
         return jsonify([])
 
     finally:
-
         conn.close()
+
 
 # ---------------------------------------------------------
 # GUARDAR EVIDENCIA DE ORDEN DE TRABAJO
@@ -375,15 +489,8 @@ def guardar_evidencia_orden(orden_id):
 
     try:
 
-        # ---------------------------------------------
-        # VERIFICAR QUE LA ORDEN PERTENECE AL USUARIO
-        # ---------------------------------------------
-
         cur.execute("""
-            SELECT
-                id,
-                estado,
-                usuario
+            SELECT id, estado, usuario
             FROM ordenes_trabajo
             WHERE id = %s
               AND usuario = %s
@@ -400,21 +507,10 @@ def guardar_evidencia_orden(orden_id):
                 "error": "Orden no encontrada"
             }), 404
 
-
-        # ---------------------------------------------
-        # VERIFICAR QUE SIGUE PENDIENTE
-        # ---------------------------------------------
-
         if orden["estado"] != "Pendiente":
-
             return jsonify({
                 "error": "La orden ya fue procesada"
             }), 400
-
-
-        # ---------------------------------------------
-        # DATOS RECIBIDOS
-        # ---------------------------------------------
 
         encontrado = request.form.get("encontrado")
 
@@ -425,10 +521,8 @@ def guardar_evidencia_orden(orden_id):
 
         latitud = request.form.get("latitud")
         longitud = request.form.get("longitud")
-         
-               # ---------------------------------------------
+
         # RECIBIR FOTO
-        # ---------------------------------------------
 
         foto_url = None
 
@@ -439,7 +533,6 @@ def guardar_evidencia_orden(orden_id):
             if archivo and archivo.filename != "":
 
                 if not allowed_file(archivo.filename):
-
                     return jsonify({
                         "error": "Formato de imagen no permitido"
                     }), 400
@@ -447,32 +540,24 @@ def guardar_evidencia_orden(orden_id):
                 foto_url = upload_to_cloudinary(archivo)
 
                 if not foto_url:
-
                     return jsonify({
                         "error": "No se pudo subir la fotografía"
                     }), 500
-         
-        # ---------------------------------------------
+
         # VALIDAR RESULTADO
-        # ---------------------------------------------
 
         if encontrado == "true":
-
             encontrado_bool = True
 
         elif encontrado == "false":
-
             encontrado_bool = False
 
         else:
-
             return jsonify({
                 "error": "Debe indicar si el medidor fue encontrado"
             }), 400
 
-        # ---------------------------------------------
         # GUARDAR EVIDENCIA
-        # ---------------------------------------------
 
         cur.execute("""
             INSERT INTO ordenes_trabajo_evidencias
@@ -482,13 +567,7 @@ def guardar_evidencia_orden(orden_id):
                 foto,
                 usuario
             )
-            VALUES
-            (
-                %s,
-                %s,
-                %s,
-                %s
-            )
+            VALUES (%s, %s, %s, %s)
         """, (
             orden_id,
             comentario,
@@ -496,10 +575,7 @@ def guardar_evidencia_orden(orden_id):
             session["usuario"]
         ))
 
-
-        # ---------------------------------------------
         # ACTUALIZAR ORDEN
-        # ---------------------------------------------
 
         cur.execute("""
             UPDATE ordenes_trabajo
@@ -518,13 +594,7 @@ def guardar_evidencia_orden(orden_id):
             orden_id
         ))
 
-
-        # ---------------------------------------------
-        # CONFIRMAR TRANSACCIÓN
-        # ---------------------------------------------
-
         conn.commit()
-
 
         print("================================")
         print("EVIDENCIA GUARDADA")
@@ -538,13 +608,11 @@ def guardar_evidencia_orden(orden_id):
         print("Estado: Completada")
         print("================================")
 
-
         return jsonify({
             "status": "ok",
             "mensaje": "Evidencia guardada correctamente",
             "orden_id": orden_id
         })
-
 
     except Exception as e:
 
@@ -556,10 +624,9 @@ def guardar_evidencia_orden(orden_id):
             "error": "Error al guardar evidencia"
         }), 500
 
-
     finally:
-
         conn.close()
+
 
 # ---------------- ANTECEDENTES DE REPORTES ----------------
 
@@ -576,6 +643,7 @@ def antecedentes_reportes(serial):
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
             SELECT
                 id,
@@ -590,7 +658,12 @@ def antecedentes_reportes(serial):
                 seguimiento_comentario,
                 orden_sap,
                 estado_sap,
-                seguimiento_actualizado
+                seguimiento_actualizado,
+                efectivo,
+                energia_recuperada_kwh,
+                estado_seguimiento,
+                empresa,
+                sub_empresa
             FROM reportes_medidores
             WHERE aparato = %s
             ORDER BY fecha DESC, id DESC
@@ -604,7 +677,9 @@ def antecedentes_reportes(serial):
         })
 
     except Exception as e:
+
         print("ERROR CONSULTANDO ANTECEDENTES:", e)
+
         return jsonify({
             "error": "No se pudieron consultar los antecedentes"
         }), 500
@@ -613,7 +688,7 @@ def antecedentes_reportes(serial):
         conn.close()
 
 
-# ---------------- REPORTES ----------------
+# ---------------- REPORTES: CONSULTA ----------------
 
 @app.route("/api/reportes", methods=["GET"])
 @usuario_required
@@ -625,10 +700,15 @@ def obtener_reportes():
     condicion_filtro = request.args.get("condicion")
     prioridad_filtro = request.args.get("prioridad")
 
+    empresa_filtro = request.args.get("empresa")
+    sub_empresa_filtro = request.args.get("sub_empresa")
+    efectivo_filtro = request.args.get("efectivo")
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         query = """
             SELECT
                 id,
@@ -647,14 +727,21 @@ def obtener_reportes():
                 seguimiento_comentario,
                 orden_sap,
                 estado_sap,
-                seguimiento_actualizado
+                seguimiento_actualizado,
+                efectivo,
+                energia_recuperada_kwh,
+                estado_seguimiento,
+                empresa,
+                sub_empresa
             FROM reportes_medidores
-            WHERE 1=1
+            WHERE 1 = 1
         """
 
         params = []
-         # Los técnicos solo pueden consultar sus propios reportes.
+
+        # Los técnicos solo pueden consultar sus propios reportes.
         if session.get("rol") != "admin":
+
             query += " AND usuario = %s"
             params.append(session["usuario"])
 
@@ -666,12 +753,24 @@ def obtener_reportes():
             query += " AND fecha::date <= %s"
             params.append(fecha_fin)
 
-        # Los filtros administrativos se aplican solo para administradores.
+        # Filtros administrativos.
         if session.get("rol") == "admin":
 
             if usuario_filtro:
                 query += " AND usuario = %s"
                 params.append(usuario_filtro)
+
+            if empresa_filtro:
+                query += " AND empresa = %s"
+                params.append(empresa_filtro)
+
+            if sub_empresa_filtro:
+                query += " AND sub_empresa = %s"
+                params.append(sub_empresa_filtro)
+
+            if efectivo_filtro in ("true", "false"):
+                query += " AND efectivo = %s"
+                params.append(efectivo_filtro == "true")
 
         if condicion_filtro:
             query += " AND condicion = %s"
@@ -681,19 +780,57 @@ def obtener_reportes():
             query += " AND prioridad = %s"
             params.append(prioridad_filtro)
 
-        query += " ORDER BY fecha DESC"
+        query += " ORDER BY fecha DESC, id DESC"
 
         cur.execute(query, tuple(params))
 
         return jsonify(cur.fetchall())
 
     except Exception as e:
+
         print("ERROR CONSULTANDO REPORTES:", e)
-        return jsonify({"error": "No se pudieron consultar los reportes"}), 500
+
+        return jsonify({
+            "error": "No se pudieron consultar los reportes"
+        }), 500
 
     finally:
         conn.close()
 
+# ---------------- TOTAL DE USUARIOS ACTIVOS ----------------
+
+@app.route("/api/reportes/total_usuarios", methods=["GET"])
+@admin_required
+def total_usuarios_reportes():
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT COUNT(*) AS total
+            FROM usuarios_sistema
+            WHERE estado = 'activo'
+              AND rol <> 'admin'
+        """)
+
+        resultado = cur.fetchone()
+
+        return jsonify({
+            "total_usuarios": resultado["total"] or 0
+        })
+
+    except Exception as e:
+
+        print("ERROR CONSULTANDO TOTAL DE USUARIOS:", e)
+
+        return jsonify({
+            "error": "No se pudo consultar el total de usuarios."
+        }), 500
+
+    finally:
+        conn.close()
 # ---------------- GUARDAR REPORTE ----------------
 
 @app.route("/api/reportes", methods=["POST"])
@@ -704,6 +841,7 @@ def api_reportes():
     cur = conn.cursor()
 
     try:
+
         if request.is_json:
             data = request.get_json() or {}
         else:
@@ -722,6 +860,7 @@ def api_reportes():
         condiciones_validas = {
             "CO", "AA", "MD", "LD", "AP24", "IL", "OT"
         }
+
         prioridades_validas = {"1", "2", "3", "4"}
 
         if not aparato or not mru:
@@ -744,11 +883,33 @@ def api_reportes():
 
         prioridad = int(prioridad)
 
+        # Obtener empresa y subempresa desde la BD.
+        # No se confía en valores enviados por el navegador.
+
+        cur.execute("""
+            SELECT empresa, sub_empresa
+            FROM usuarios_sistema
+            WHERE usuario = %s
+        """, (session["usuario"],))
+
+        datos_usuario = cur.fetchone()
+
+        if not datos_usuario:
+            return jsonify({
+                "status": "error",
+                "error": "No se encontró el usuario que registra el reporte."
+            }), 400
+
+        empresa_usuario = datos_usuario["empresa"]
+        sub_empresa_usuario = datos_usuario["sub_empresa"]
+
         # Recibir las fotos nuevas y conservar compatibilidad
         # con el formulario anterior que enviaba una sola foto.
+
         archivos = []
 
         if not request.is_json:
+
             archivos = [
                 archivo
                 for archivo in request.files.getlist("fotos")
@@ -756,6 +917,7 @@ def api_reportes():
             ]
 
             if not archivos:
+
                 foto_anterior = request.files.get("foto")
 
                 if foto_anterior and foto_anterior.filename:
@@ -777,25 +939,30 @@ def api_reportes():
                     "error": "Formato de imagen no permitido. Usa JPG, PNG o WEBP."
                 }), 400
 
-            # Intentar guardar en Cloudinary.
             foto_url = upload_to_cloudinary(archivo)
 
-            # Si Cloudinary falla, conservar el respaldo local.
+            # Respaldo local si Cloudinary falla.
             if not foto_url:
+
                 try:
+
                     archivo.stream.seek(0)
 
                     nombre = secure_filename(archivo.filename)
+
                     nombre_final = (
                         f"{int(datetime.now().timestamp() * 1000)}_"
                         f"{len(fotos_urls) + 1}_{nombre}"
                     )
 
                     ruta_relativa = os.path.join(
-                        "uploads", nombre_final
+                        "uploads",
+                        nombre_final
                     )
+
                     ruta_fisica = os.path.join(
-                        "static", ruta_relativa
+                        "static",
+                        ruta_relativa
                     )
 
                     archivo.save(ruta_fisica)
@@ -803,6 +970,7 @@ def api_reportes():
                     foto_url = ruta_relativa.replace("\\", "/")
 
                 except Exception as e:
+
                     print("ERROR GUARDANDO FOTO LOCAL:", e)
 
                     return jsonify({
@@ -812,9 +980,10 @@ def api_reportes():
 
             fotos_urls.append(foto_url)
 
-        # La primera foto sigue guardándose en la columna foto
-        # para mantener compatibilidad con los reportes anteriores.
         foto_principal = fotos_urls[0] if fotos_urls else None
+
+        # Insertar el reporte y conservar la empresa/subempresa
+        # que tenía el técnico al momento de crearlo.
 
         cur.execute("""
             INSERT INTO reportes_medidores
@@ -830,13 +999,17 @@ def api_reportes():
                 usuario,
                 fecha,
                 foto,
-                fotos
+                fotos,
+                empresa,
+                sub_empresa
             )
             VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 COALESCE(%s::timestamp, NOW()),
                 %s,
-                %s::jsonb
+                %s::jsonb,
+                %s,
+                %s
             )
             RETURNING id
         """, (
@@ -851,10 +1024,13 @@ def api_reportes():
             session["usuario"],
             fecha or None,
             foto_principal,
-            json.dumps(fotos_urls)
+            json.dumps(fotos_urls),
+            empresa_usuario,
+            sub_empresa_usuario
         ))
 
         reporte = cur.fetchone()
+
         conn.commit()
 
         return jsonify({
@@ -864,7 +1040,9 @@ def api_reportes():
         })
 
     except Exception as e:
+
         conn.rollback()
+
         print("ERROR GUARDANDO REPORTE:", e)
 
         return jsonify({
@@ -874,8 +1052,7 @@ def api_reportes():
 
     finally:
         conn.close()
-
-# ---------------- GESTION ADMINISTRATIVA DEL REPORTE ----------------
+        # ---------------- GESTION ADMINISTRATIVA DEL REPORTE ----------------
 
 @app.route(
     "/api/reportes/<int:reporte_id>/seguimiento",
@@ -890,8 +1067,13 @@ def guardar_seguimiento_reporte(reporte_id):
         data.get("seguimiento_comentario") or ""
     ).strip()
 
-    orden_sap = str(data.get("orden_sap") or "").strip() or None
-    estado_sap = str(data.get("estado_sap") or "").strip()
+    orden_sap = str(
+        data.get("orden_sap") or ""
+    ).strip() or None
+
+    estado_sap = str(
+        data.get("estado_sap") or ""
+    ).strip()
 
     estados_validos = {
         "Generada",
@@ -910,6 +1092,7 @@ def guardar_seguimiento_reporte(reporte_id):
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
             SELECT id
             FROM reportes_medidores
@@ -918,7 +1101,9 @@ def guardar_seguimiento_reporte(reporte_id):
         """, (reporte_id,))
 
         if not cur.fetchone():
-            return jsonify({"error": "Reporte no encontrado"}), 404
+            return jsonify({
+                "error": "Reporte no encontrado"
+            }), 404
 
         cur.execute("""
             UPDATE reportes_medidores
@@ -950,7 +1135,7 @@ def guardar_seguimiento_reporte(reporte_id):
         """, (
             reporte_id,
             session["usuario"],
-            "Actualización de seguimiento",
+            "Actualización de seguimiento SAP",
             comentario,
             orden_sap,
             estado_sap
@@ -960,14 +1145,217 @@ def guardar_seguimiento_reporte(reporte_id):
 
         return jsonify({
             "status": "ok",
-            "mensaje": "Seguimiento guardado correctamente"
+            "mensaje": "Seguimiento SAP guardado correctamente"
         })
 
     except Exception as e:
+
         conn.rollback()
+
         print("ERROR GUARDANDO SEGUIMIENTO:", e)
+
         return jsonify({
             "error": "No se pudo guardar el seguimiento"
+        }), 500
+
+    finally:
+        conn.close()
+
+
+# ---------------- EVALUAR EFECTIVIDAD DEL REPORTE ----------------
+
+@app.route(
+    "/api/reportes/<int:reporte_id>/efectividad",
+    methods=["POST"]
+)
+@admin_required
+def guardar_efectividad_reporte(reporte_id):
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "error": "No se recibieron datos válidos."
+        }), 400
+
+    try:
+
+        efectivo = convertir_booleano_nulo(
+            data.get("efectivo")
+        )
+
+        energia = convertir_energia(
+            data.get("energia_recuperada_kwh")
+        )
+
+    except ValueError as e:
+
+        return jsonify({
+            "error": str(e)
+        }), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT id
+            FROM reportes_medidores
+            WHERE id = %s
+            FOR UPDATE
+        """, (reporte_id,))
+
+        reporte = cur.fetchone()
+
+        if not reporte:
+            return jsonify({
+                "error": "Reporte no encontrado."
+            }), 404
+
+        cur.execute("""
+            UPDATE reportes_medidores
+            SET
+                efectivo = %s,
+                energia_recuperada_kwh = %s
+            WHERE id = %s
+        """, (
+            efectivo,
+            energia,
+            reporte_id
+        ))
+
+        cur.execute("""
+            INSERT INTO reportes_medidores_historial
+            (
+                reporte_id,
+                usuario_gestion,
+                accion,
+                efectivo,
+                energia_recuperada_kwh,
+                fecha_gestion
+            )
+            VALUES (%s, %s, %s, %s, %s, NOW())
+        """, (
+            reporte_id,
+            session["usuario"],
+            "Evaluación de efectividad",
+            efectivo,
+            energia
+        ))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "ok",
+            "mensaje": "Evaluación de efectividad guardada correctamente",
+            "efectivo": efectivo,
+            "energia_recuperada_kwh": (
+                str(energia) if energia is not None else None
+            )
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print("ERROR GUARDANDO EFECTIVIDAD:", e)
+
+        return jsonify({
+            "error": "No se pudo guardar la evaluación de efectividad."
+        }), 500
+
+    finally:
+        conn.close()
+
+
+# ---------------- BANDERA DE SEGUIMIENTO ----------------
+
+@app.route(
+    "/api/reportes/<int:reporte_id>/bandera",
+    methods=["POST"]
+)
+@admin_required
+def guardar_bandera_seguimiento(reporte_id):
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "error": "No se recibieron datos válidos."
+        }), 400
+
+    estado_seguimiento = str(
+        data.get("estado_seguimiento") or ""
+    ).strip().upper()
+
+    if estado_seguimiento not in ESTADOS_SEGUIMIENTO_VALIDOS:
+        return jsonify({
+            "error": (
+                "Estado de seguimiento inválido. "
+                "Usa SIN_SEGUIMIENTO, PENDIENTE o RESUELTO."
+            )
+        }), 400
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT id
+            FROM reportes_medidores
+            WHERE id = %s
+            FOR UPDATE
+        """, (reporte_id,))
+
+        if not cur.fetchone():
+            return jsonify({
+                "error": "Reporte no encontrado."
+            }), 404
+
+        cur.execute("""
+            UPDATE reportes_medidores
+            SET estado_seguimiento = %s
+            WHERE id = %s
+        """, (
+            estado_seguimiento,
+            reporte_id
+        ))
+
+        cur.execute("""
+            INSERT INTO reportes_medidores_historial
+            (
+                reporte_id,
+                usuario_gestion,
+                accion,
+                estado_seguimiento,
+                fecha_gestion
+            )
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (
+            reporte_id,
+            session["usuario"],
+            "Actualización de bandera de seguimiento",
+            estado_seguimiento
+        ))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "ok",
+            "mensaje": "Bandera de seguimiento actualizada correctamente",
+            "estado_seguimiento": estado_seguimiento
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print("ERROR ACTUALIZANDO BANDERA:", e)
+
+        return jsonify({
+            "error": "No se pudo actualizar la bandera de seguimiento."
         }), 500
 
     finally:
@@ -987,6 +1375,7 @@ def historial_seguimiento_reporte(reporte_id):
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
             SELECT
                 id,
@@ -996,6 +1385,9 @@ def historial_seguimiento_reporte(reporte_id):
                 comentario,
                 orden_sap,
                 estado_sap,
+                efectivo,
+                energia_recuperada_kwh,
+                estado_seguimiento,
                 fecha_gestion
             FROM reportes_medidores_historial
             WHERE reporte_id = %s
@@ -1005,8 +1397,12 @@ def historial_seguimiento_reporte(reporte_id):
         return jsonify(cur.fetchall())
 
     except Exception as e:
+
         print("ERROR CONSULTANDO HISTORIAL:", e)
-        return jsonify({"error": "No se pudo consultar el historial"}), 500
+
+        return jsonify({
+            "error": "No se pudo consultar el historial"
+        }), 500
 
     finally:
         conn.close()
@@ -1023,11 +1419,15 @@ def exportar_reportes():
     usuario_filtro = request.args.get("usuario")
     condicion_filtro = request.args.get("condicion")
     prioridad_filtro = request.args.get("prioridad")
+    empresa_filtro = request.args.get("empresa")
+    sub_empresa_filtro = request.args.get("sub_empresa")
+    efectivo_filtro = request.args.get("efectivo")
 
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         query = """
             SELECT
                 aparato,
@@ -1041,12 +1441,18 @@ def exportar_reportes():
                 usuario,
                 fecha,
                 foto,
+                fotos,
                 seguimiento_comentario,
                 orden_sap,
                 estado_sap,
-                seguimiento_actualizado
+                seguimiento_actualizado,
+                efectivo,
+                energia_recuperada_kwh,
+                estado_seguimiento,
+                empresa,
+                sub_empresa
             FROM reportes_medidores
-            WHERE 1=1
+            WHERE 1 = 1
         """
 
         params = []
@@ -1071,9 +1477,22 @@ def exportar_reportes():
             query += " AND prioridad = %s"
             params.append(prioridad_filtro)
 
-        query += " ORDER BY fecha DESC"
+        if empresa_filtro:
+            query += " AND empresa = %s"
+            params.append(empresa_filtro)
+
+        if sub_empresa_filtro:
+            query += " AND sub_empresa = %s"
+            params.append(sub_empresa_filtro)
+
+        if efectivo_filtro in ("true", "false"):
+            query += " AND efectivo = %s"
+            params.append(efectivo_filtro == "true")
+
+        query += " ORDER BY fecha DESC, id DESC"
 
         cur.execute(query, tuple(params))
+
         rows = cur.fetchall()
 
         wb = Workbook()
@@ -1092,38 +1511,54 @@ def exportar_reportes():
             "USUARIO",
             "FECHA",
             "FOTO",
+            "FOTOGRAFIAS",
             "SEGUIMIENTO DEL ANALISTA",
             "ORDEN SAP",
             "ESTADO SAP",
-            "ULTIMA ACTUALIZACION"
+            "ULTIMA ACTUALIZACION",
+            "EFECTIVO",
+            "ENERGIA RECUPERADA (kWh)",
+            "BANDERA DE SEGUIMIENTO",
+            "EMPRESA",
+            "SUBEMPRESA"
         ])
 
-        
         base_url = request.host_url.rstrip("/")
 
         from zoneinfo import ZoneInfo
-        from datetime import datetime
 
         zona_sv = ZoneInfo("America/El_Salvador")
 
         def fecha_hora_sv(valor):
+
             if valor is None:
                 return None
 
             if isinstance(valor, datetime):
+
                 if valor.tzinfo is None:
                     return valor
+
                 return valor.astimezone(zona_sv).replace(tzinfo=None)
 
             return valor
 
         for r in rows:
+
             fecha_reporte = fecha_hora_sv(r["fecha"])
-            fecha_gestion = fecha_hora_sv(r["seguimiento_actualizado"])
+            fecha_gestion = fecha_hora_sv(
+                r["seguimiento_actualizado"]
+            )
+
+            fotos = r["fotos"] or []
+
+            if isinstance(fotos, str):
+                try:
+                    fotos = json.loads(fotos)
+                except Exception:
+                    fotos = []
 
             ws.append([
-
-
                 r["aparato"],
                 r["mru"],
                 r["referencia"],
@@ -1135,14 +1570,27 @@ def exportar_reportes():
                 r["usuario"],
                 fecha_reporte,
                 "ver foto" if r["foto"] else "",
+                len(fotos),
                 r["seguimiento_comentario"],
                 r["orden_sap"],
                 r["estado_sap"],
-                  fecha_gestion
+                fecha_gestion,
+                (
+                    "Sí" if r["efectivo"] is True
+                    else "No" if r["efectivo"] is False
+                    else "Pendiente de evaluar"
+                ),
+                r["energia_recuperada_kwh"],
+                r["estado_seguimiento"],
+                r["empresa"],
+                r["sub_empresa"]
             ])
 
+            fila = ws.max_row
+
+            # Hipervínculo de la fotografía principal.
             if r["foto"]:
-                fila = ws.max_row
+
                 celda = ws[f"K{fila}"]
                 foto = r["foto"]
 
@@ -1155,18 +1603,49 @@ def exportar_reportes():
                 celda.hyperlink = url
                 celda.style = "Hyperlink"
 
+            # Hipervínculos de todas las fotografías.
+            if fotos:
+
+                enlaces = []
+
+                for numero, foto in enumerate(fotos, start=1):
+
+                    if not foto:
+                        continue
+
+                    if foto.startswith("http"):
+                        url = foto
+                    else:
+                        url = f"{base_url}/static/{foto}"
+
+                    enlaces.append(f"Foto {numero}: {url}")
+
+                if enlaces:
+                    celda_fotos = ws[f"L{fila}"]
+                    celda_fotos.value = "\n".join(enlaces)
+
+                    # Se conserva la lista de URLs en la celda
+                    # para que puedan copiarse desde Excel.
+
         ws.freeze_panes = "A2"
         ws.auto_filter.ref = ws.dimensions
 
         for columna in ws.columns:
+
             letra = columna[0].column_letter
+
             max_largo = max(
                 len(str(celda.value or ""))
                 for celda in columna
             )
-            ws.column_dimensions[letra].width = min(max_largo + 2, 40)
+
+            ws.column_dimensions[letra].width = min(
+                max_largo + 2,
+                40
+            )
 
         file_path = "reportes.xlsx"
+
         wb.save(file_path)
 
         return send_file(
@@ -1176,45 +1655,92 @@ def exportar_reportes():
         )
 
     except Exception as e:
+
         print("ERROR EXPORTANDO REPORTES:", e)
-        return jsonify({"error": "No se pudieron exportar los reportes"}), 500
+
+        return jsonify({
+            "error": "No se pudieron exportar los reportes"
+        }), 500
 
     finally:
         conn.close()
-
-# ---------------- INTENTOS ----------------
+        # ---------------- INTENTOS ----------------
 
 def registrar_intento(ip, conn):
+
     cur = conn.cursor()
 
-    cur.execute("SELECT * FROM intentos_login WHERE ip = %s", (ip,))
+    cur.execute("""
+        SELECT *
+        FROM intentos_login
+        WHERE ip = %s
+    """, (ip,))
+
     data = cur.fetchone()
 
     if data:
+
         intentos = data["intentos"] + 1
+
         if intentos >= MAX_INTENTOS:
-            bloqueo = datetime.now() + timedelta(minutes=TIEMPO_BLOQUEO_MIN)
+
+            bloqueo = datetime.now() + timedelta(
+                minutes=TIEMPO_BLOQUEO_MIN
+            )
+
             cur.execute("""
-                UPDATE intentos_login 
-                SET intentos=%s, bloqueado_hasta=%s 
-                WHERE ip=%s
-            """, (intentos, bloqueo, ip))
+                UPDATE intentos_login
+                SET
+                    intentos = %s,
+                    bloqueado_hasta = %s
+                WHERE ip = %s
+            """, (
+                intentos,
+                bloqueo,
+                ip
+            ))
+
         else:
-            cur.execute("UPDATE intentos_login SET intentos=%s WHERE ip=%s", (intentos, ip))
+
+            cur.execute("""
+                UPDATE intentos_login
+                SET intentos = %s
+                WHERE ip = %s
+            """, (
+                intentos,
+                ip
+            ))
+
     else:
-        cur.execute("INSERT INTO intentos_login (ip, intentos) VALUES (%s, 1)", (ip,))
+
+        cur.execute("""
+            INSERT INTO intentos_login (ip, intentos)
+            VALUES (%s, 1)
+        """, (ip,))
 
     conn.commit()
+
 
 def limpiar_intentos(ip, conn):
+
     cur = conn.cursor()
-    cur.execute("DELETE FROM intentos_login WHERE ip = %s", (ip,))
+
+    cur.execute("""
+        DELETE FROM intentos_login
+        WHERE ip = %s
+    """, (ip,))
+
     conn.commit()
-#---------------------agregado ya que la ia lo elimino -------------
+
+
+# ---------------- CARGAR SUSCRIPTORES ----------------
+
 @app.route("/admin/cargar_suscriptores", methods=["GET", "POST"])
 @admin_required
 def cargar_suscriptores():
+
     if request.method == "POST":
+
         archivo = request.files.get("archivo")
 
         if not archivo:
@@ -1225,12 +1751,22 @@ def cargar_suscriptores():
 
         contenido = archivo.read().decode("utf-8").lstrip('\ufeff')
 
-        # 🔥 limpiar líneas vacías
-        lineas = [l for l in contenido.splitlines() if l.strip() != ""]
-        contenido = "\n".join(lineas)  
+        # Limpiar líneas vacías.
+        lineas = [
+            linea
+            for linea in contenido.splitlines()
+            if linea.strip() != ""
+        ]
 
-        # 🔹 guardar temporalmente el CSV
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix=".csv") as temp:
+        contenido = "\n".join(lineas)
+
+        # Guardar temporalmente el CSV.
+        with tempfile.NamedTemporaryFile(
+            mode="w+",
+            delete=False,
+            suffix=".csv"
+        ) as temp:
+
             temp.write(contenido)
             temp_path = temp.name
 
@@ -1238,95 +1774,126 @@ def cargar_suscriptores():
         cur = conn.cursor()
 
         try:
-            # 🔒 iniciar transacción segura
+
             conn.autocommit = False
 
-            # 1️⃣ crear tabla temporal
+            # 1. Crear tabla temporal.
             cur.execute("""
                 CREATE TEMP TABLE temp_suscriptores (
-    serialnumber TEXT,
-    latitude DOUBLE PRECISION,
-    longitude DOUBLE PRECISION,
-    mru TEXT,
-    mr_time TIME
-) ON COMMIT DROP;
+                    serialnumber TEXT,
+                    latitude DOUBLE PRECISION,
+                    longitude DOUBLE PRECISION,
+                    mru TEXT,
+                    mr_time TIME
+                ) ON COMMIT DROP;
             """)
 
-            # 2️⃣ cargar datos masivamente
-            with open(temp_path, 'r') as f:
+            # 2. Cargar datos masivamente.
+            with open(temp_path, "r") as f:
+
                 cur.copy_expert("""
                     COPY temp_suscriptores(
-    serialnumber,
-    latitude,
-    longitude,
-    mru,
-    mr_time
-)
-FROM STDIN WITH CSV HEADER
+                        serialnumber,
+                        latitude,
+                        longitude,
+                        mru,
+                        mr_time
+                    )
+                    FROM STDIN WITH CSV HEADER
                 """, f)
 
-            # 3️⃣ limpiar datos inválidos
+            # 3. Limpiar datos inválidos.
             cur.execute("""
                 DELETE FROM temp_suscriptores
-                WHERE latitude = 0 OR longitude = 0 OR serialnumber IS NULL;
+                WHERE latitude = 0
+                   OR longitude = 0
+                   OR serialnumber IS NULL;
             """)
 
-            # 4️⃣ reemplazo seguro
-            cur.execute("DELETE FROM suscriptores_noviembre_2025")
+            # 4. Reemplazo seguro.
+            cur.execute("""
+                DELETE FROM suscriptores_noviembre_2025
+            """)
 
             cur.execute("""
                 INSERT INTO suscriptores_noviembre_2025 (
-    serialnumber,
-    latitude,
-    longitude,
-    mru,
-    mr_time
-)
-SELECT
-    serialnumber,
-    latitude,
-    longitude,
-    mru,
-    mr_time
-FROM temp_suscriptores;
+                    serialnumber,
+                    latitude,
+                    longitude,
+                    mru,
+                    mr_time
+                )
+                SELECT
+                    serialnumber,
+                    latitude,
+                    longitude,
+                    mru,
+                    mr_time
+                FROM temp_suscriptores;
             """)
 
-            # ✅ confirmar todo
             conn.commit()
 
             flash("Carga masiva completada 🚀")
 
         except Exception as e:
+
             conn.rollback()
+
             print("ERROR:", e)
+
             flash("Error en la carga")
 
         finally:
+
             conn.close()
+
+            try:
+                os.remove(temp_path)
+            except OSError:
+                pass
 
         return redirect(url_for("cargar_suscriptores"))
 
     return render_template("cargar_suscriptores.html")
-#-----------------------------otro eliminado de la IA -----------------------------------
+
+
+# ---------------- ADMINISTRAR USUARIOS ----------------
+
 @app.route("/admin/usuarios")
 @admin_required
 def admin_usuarios():
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
-            SELECT usuario, nombre, correo, estado, rol
+            SELECT
+                usuario,
+                nombre,
+                correo,
+                estado,
+                rol,
+                empresa,
+                sub_empresa
             FROM usuarios_sistema
             ORDER BY usuario
         """)
+
         usuarios = cur.fetchall()
-        return render_template("admin_usuarios.html", usuarios=usuarios)
+
+        return render_template(
+            "admin_usuarios.html",
+            usuarios=usuarios
+        )
+
     finally:
         conn.close()
 
 
-#------------------- resultados de auditoria --------------
+# ---------------- RESULTADOS DE AUDITORIA ----------------
 
 @app.route("/admin/resultados_auditorias")
 @admin_required
@@ -1369,10 +1936,7 @@ def resultados_auditorias():
 
         auditorias = cur.fetchall()
 
-
-        # =============================================
-        # RESUMEN DE AUDITORÍAS POR TÉCNICO
-        # =============================================
+        # RESUMEN DE AUDITORÍAS POR TÉCNICO.
 
         cur.execute("""
             SELECT
@@ -1390,13 +1954,14 @@ def resultados_auditorias():
 
                 COUNT(*) FILTER (
                     WHERE estado = 'Completada'
-                    AND ubicacion_encontrada = TRUE
-                    ) AS encontrados,
+                      AND ubicacion_encontrada = TRUE
+                ) AS encontrados,
 
                 COUNT(*) FILTER (
                     WHERE estado = 'Completada'
-                    AND ubicacion_encontrada = FALSE
-                    ) AS no_encontrados
+                      AND ubicacion_encontrada = FALSE
+                ) AS no_encontrados
+
             FROM ordenes_trabajo
 
             WHERE tipo = 'Revision'
@@ -1408,17 +1973,17 @@ def resultados_auditorias():
 
         resumen_tecnicos = cur.fetchall()
 
-
         return render_template(
             "resultados_auditorias.html",
             auditorias=auditorias,
             resumen_tecnicos=resumen_tecnicos
         )
-    
-    finally:
 
+    finally:
         conn.close()
-#---------- --------------------------------------------------------
+
+
+# ---------------- RUTA DE AUDITORIAS ----------------
 
 @app.route("/admin/api/ruta_auditorias/<usuario>")
 @admin_required
@@ -1443,6 +2008,7 @@ def ruta_auditorias(usuario):
                 ot.fecha_finalizacion,
                 ote.comentario,
                 ote.foto
+
             FROM ordenes_trabajo ot
 
             LEFT JOIN LATERAL (
@@ -1473,20 +2039,26 @@ def ruta_auditorias(usuario):
         return jsonify(revisiones)
 
     finally:
-
         conn.close()
 
-#------------------ no eliminar del codigo  ----------------
+
+# ---------------- CREAR USUARIO ----------------
 
 @app.route("/admin/usuario/nuevo", methods=["GET", "POST"])
 @admin_required
 def nuevo_usuario():
+
     if request.method == "POST":
+
         usuario = request.form["usuario"]
         nombre = request.form["nombre"]
         password = request.form["password"]
         correo = request.form["correo"]
         rol = request.form.get("rol", "usuario")
+
+        # NUEVO: empresa y subempresa.
+        empresa = request.form.get("empresa") or None
+        sub_empresa = request.form.get("sub_empresa") or None
 
         hash_pw = generate_password_hash(password)
 
@@ -1494,17 +2066,46 @@ def nuevo_usuario():
         cur = conn.cursor()
 
         try:
-            cur.execute("SELECT usuario FROM usuarios_sistema WHERE usuario = %s", (usuario,))
+
+            cur.execute("""
+                SELECT usuario
+                FROM usuarios_sistema
+                WHERE usuario = %s
+            """, (usuario,))
+
             if cur.fetchone():
+
                 flash("Usuario ya existe")
+
                 return redirect(url_for("nuevo_usuario"))
 
             cur.execute("""
-                INSERT INTO usuarios_sistema (usuario, nombre, contrasena, correo, estado, rol)
-                VALUES (%s, %s, %s, %s, 'activo', %s)
-            """, (usuario, nombre, hash_pw, correo, rol))
+                INSERT INTO usuarios_sistema
+                (
+                    usuario,
+                    nombre,
+                    contrasena,
+                    correo,
+                    estado,
+                    rol,
+                    empresa,
+                    sub_empresa
+                )
+                VALUES (
+                    %s, %s, %s, %s, 'activo', %s, %s, %s
+                )
+            """, (
+                usuario,
+                nombre,
+                hash_pw,
+                correo,
+                rol,
+                empresa,
+                sub_empresa
+            ))
 
             conn.commit()
+
             flash("Usuario creado")
 
         finally:
@@ -1514,14 +2115,18 @@ def nuevo_usuario():
 
     return render_template("nuevo_usuario.html")
 
-#-------------------------------------
+
+# ---------------- BLOQUEAR USUARIO ----------------
+
 @app.route("/admin/usuario/<usuario>/bloquear")
 @admin_required
 def bloquear_usuario(usuario):
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
             UPDATE usuarios_sistema
             SET estado = 'bloqueado'
@@ -1529,6 +2134,7 @@ def bloquear_usuario(usuario):
         """, (usuario,))
 
         conn.commit()
+
         flash(f"Usuario {usuario} bloqueado.")
 
     finally:
@@ -1536,14 +2142,18 @@ def bloquear_usuario(usuario):
 
     return redirect(url_for("admin_usuarios"))
 
-#-----------------------------------------
+
+# ---------------- DESBLOQUEAR USUARIO ----------------
+
 @app.route("/admin/usuario/<usuario>/desbloquear")
 @admin_required
 def desbloquear_usuario(usuario):
+
     conn = get_db()
     cur = conn.cursor()
 
     try:
+
         cur.execute("""
             UPDATE usuarios_sistema
             SET estado = 'activo'
@@ -1551,6 +2161,7 @@ def desbloquear_usuario(usuario):
         """, (usuario,))
 
         conn.commit()
+
         flash(f"Usuario {usuario} desbloqueado.")
 
     finally:
@@ -1558,13 +2169,16 @@ def desbloquear_usuario(usuario):
 
     return redirect(url_for("admin_usuarios"))
 
-#-------------------------------------------
-@app.route('/cambiar_password/<usuario>', methods=['GET', 'POST'])
+
+# ---------------- CAMBIAR PASSWORD ----------------
+
+@app.route("/cambiar_password/<usuario>", methods=["GET", "POST"])
 @admin_required
 def cambiar_password(usuario):
 
-    if request.method == 'POST':
-        nueva_password = request.form.get('password')
+    if request.method == "POST":
+
+        nueva_password = request.form.get("password")
 
         hash_pw = generate_password_hash(nueva_password)
 
@@ -1572,21 +2186,30 @@ def cambiar_password(usuario):
         cur = conn.cursor()
 
         try:
+
             cur.execute("""
                 UPDATE usuarios_sistema
                 SET contrasena = %s
                 WHERE usuario = %s
-            """, (hash_pw, usuario))
+            """, (
+                hash_pw,
+                usuario
+            ))
 
             conn.commit()
-            flash('Contraseña actualizada correctamente')
+
+            flash("Contraseña actualizada correctamente")
 
         finally:
             conn.close()
 
-        return redirect(url_for('admin_usuarios'))
+        return redirect(url_for("admin_usuarios"))
 
-    return render_template('cambiar_password.html', usuario=usuario)
+    return render_template(
+        "cambiar_password.html",
+        usuario=usuario
+    )
+
 
 # ---------------- CARGAR REVISIONES ----------------
 
@@ -1596,18 +2219,28 @@ def cargar_revisiones():
 
     archivo = request.files.get("archivo")
     usuario = request.form.get("usuario")
+
     id_lote = f"REV-{datetime.now().strftime('%Y%m%d-%H%M%S')}"
 
     if not archivo:
+
         flash("Debe seleccionar un archivo Excel.")
+
         return redirect(url_for("revisiones"))
 
     try:
 
-        wb = load_workbook(archivo, data_only=True)
+        wb = load_workbook(
+            archivo,
+            data_only=True
+        )
+
         ws = wb.active
 
-        encabezados = [str(c.value).strip().lower() if c.value else "" for c in ws[1]]
+        encabezados = [
+            str(c.value).strip().lower() if c.value else ""
+            for c in ws[1]
+        ]
 
         columnas_requeridas = [
             "instalacion",
@@ -1621,6 +2254,7 @@ def cargar_revisiones():
             if col not in encabezados:
 
                 flash(f"No existe la columna: {col}")
+
                 return redirect(url_for("revisiones"))
 
         idx_inst = encabezados.index("instalacion")
@@ -1634,7 +2268,10 @@ def cargar_revisiones():
         encontrados = []
         no_encontrados = []
 
-        for fila in ws.iter_rows(min_row=2, values_only=True):
+        for fila in ws.iter_rows(
+            min_row=2,
+            values_only=True
+        ):
 
             instalacion = fila[idx_inst]
             serial = fila[idx_serial]
@@ -1649,24 +2286,21 @@ def cargar_revisiones():
                     latitude,
                     longitude
                 FROM suscriptores_noviembre_2025
-                WHERE serialnumber=%s
-            """,(str(serial),))
+                WHERE serialnumber = %s
+            """, (str(serial),))
 
             dato = cur.fetchone()
 
             if dato:
 
                 encontrados.append({
-
                     "instalacion": instalacion,
                     "serialnumber": serial,
                     "fecha": fecha,
                     "comentario": comentario,
                     "latitud": dato["latitude"],
                     "longitud": dato["longitude"]
-
                 })
-
 
                 cur.execute("""
                     INSERT INTO revisiones_temporal
@@ -1681,9 +2315,8 @@ def cargar_revisiones():
                         longitud,
                         encontrado
                     )
-                    VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                """,
-                (
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """, (
                     id_lote,
                     usuario,
                     instalacion,
@@ -1698,13 +2331,12 @@ def cargar_revisiones():
             else:
 
                 no_encontrados.append({
-
                     "instalacion": instalacion,
                     "serialnumber": serial,
                     "fecha": fecha,
                     "comentario": comentario
-
                 })
+
                 cur.execute("""
                     INSERT INTO revisiones_temporal
                     (
@@ -1716,9 +2348,8 @@ def cargar_revisiones():
                         comentario,
                         encontrado
                     )
-                    VALUES (%s,%s,%s,%s,%s,%s,%s)
-                """,
-                (
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (
                     id_lote,
                     usuario,
                     instalacion,
@@ -1731,14 +2362,14 @@ def cargar_revisiones():
         conn.commit()
         conn.close()
 
-        # volver a consultar usuarios activos
+        # Volver a consultar usuarios activos.
         conn2 = get_db()
         cur2 = conn2.cursor()
 
         cur2.execute("""
             SELECT usuario, nombre
             FROM usuarios_sistema
-            WHERE estado='activo'
+            WHERE estado = 'activo'
             ORDER BY nombre
         """)
 
@@ -1747,20 +2378,13 @@ def cargar_revisiones():
         conn2.close()
 
         return render_template(
-
             "revisiones.html",
-
             usuarios=usuarios,
-
             encontrados=encontrados,
-
             no_encontrados=no_encontrados,
-
-            total=len(encontrados)+len(no_encontrados),
-
+            total=len(encontrados) + len(no_encontrados),
             usuario=usuario,
             id_lote=id_lote
-
         )
 
     except Exception as e:
@@ -1771,7 +2395,7 @@ def cargar_revisiones():
 
         return redirect(url_for("revisiones"))
 
-# ---------------- CONFIRMAR REVISION ----------------
+
 # ---------------- CONFIRMAR REVISION ----------------
 
 @app.route("/admin/confirmar_revision/<id_lote>", methods=["POST"])
@@ -1783,7 +2407,7 @@ def confirmar_revision(id_lote):
 
     try:
 
-        # Obtener todos los registros del lote
+        # Obtener todos los registros del lote.
         cur.execute("""
             SELECT
                 id,
@@ -1796,36 +2420,37 @@ def confirmar_revision(id_lote):
                 longitud,
                 encontrado
             FROM revisiones_temporal
-            WHERE id_lote=%s
+            WHERE id_lote = %s
             ORDER BY id
         """, (id_lote,))
 
         registros = cur.fetchall()
 
-        # Actualizar coordenadas de los no encontrados
-        # Actualizar coordenadas de los no encontrados
-                # Actualizar coordenadas de los no encontrados
-
+        # Actualizar coordenadas de los no encontrados.
         indice_no_encontrado = 1
 
         for r in registros:
 
             if not r["encontrado"]:
 
-                lat = request.form.get(f"latitud_{indice_no_encontrado}")
-                lon = request.form.get(f"longitud_{indice_no_encontrado}")
+                lat = request.form.get(
+                    f"latitud_{indice_no_encontrado}"
+                )
+
+                lon = request.form.get(
+                    f"longitud_{indice_no_encontrado}"
+                )
 
                 if lat and lon:
 
                     cur.execute("""
                         UPDATE revisiones_temporal
                         SET
-                            latitud=%s,
-                            longitud=%s,
-                            encontrado=TRUE
-                        WHERE id=%s
-                    """,
-                    (
+                            latitud = %s,
+                            longitud = %s,
+                            encontrado = TRUE
+                        WHERE id = %s
+                    """, (
                         lat,
                         lon,
                         r["id"]
@@ -1837,9 +2462,7 @@ def confirmar_revision(id_lote):
 
                 indice_no_encontrado += 1
 
-
-        # Crear órdenes
-
+        # Crear órdenes.
         for r in registros:
 
             if not r["latitud"] or not r["longitud"]:
@@ -1861,12 +2484,10 @@ def confirmar_revision(id_lote):
                     ubicacion_encontrada,
                     fecha_asignacion
                 )
-                VALUES
-                (
-                    %s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW()
+                VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW()
                 )
-            """,
-            (
+            """, (
                 r["instalacion"],
                 r["serialnumber"],
                 r["fecha"],
@@ -1880,13 +2501,11 @@ def confirmar_revision(id_lote):
                 r["encontrado"]
             ))
 
-                # Limpiar tabla temporal después de crear las órdenes
-
+        # Limpiar tabla temporal después de crear las órdenes.
         cur.execute("""
             DELETE FROM revisiones_temporal
-            WHERE id_lote=%s
+            WHERE id_lote = %s
         """, (id_lote,))
-
 
         conn.commit()
 
@@ -1895,15 +2514,18 @@ def confirmar_revision(id_lote):
     except Exception as e:
 
         conn.rollback()
+
         print("ERROR CONFIRMAR:", e)
+
         flash("Error al confirmar carga")
 
     finally:
-
         conn.close()
 
     return redirect(url_for("revisiones"))
+
+
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=True)        
