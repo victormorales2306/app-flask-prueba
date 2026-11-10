@@ -142,6 +142,513 @@ tbody tr[data-reporte-id] { cursor:pointer; }
   .charts { grid-template-columns:1fr; }
   .map-wrap { height:480px; }
 }
+
+/* ===== Presentación ejecutiva inspirada en el tablero de referencia ===== */
+:root {
+  --azul:#082f57;
+  --azul2:#1261a6;
+  --fondo:#eaf1f6;
+  --texto:#102b4e;
+  --borde:#dce6ef;
+  --verde:#20a957;
+  --sombra:0 3px 12px rgba(19,48,78,.07);
+  --fondo-card:#fff;
+}
+html, body { background:#eaf1f6; color:#102b4e; }
+header {
+  min-height:94px;
+  padding:17px 28px;
+  background:linear-gradient(105deg,#062849 0%,#073b69 65%,#0b5684 100%);
+  border-bottom:4px solid #32a7d7;
+  box-shadow:0 3px 14px rgba(3,28,54,.16);
+}
+header h1 { font-size:25px; letter-spacing:-.45px; font-weight:750; }
+header p { font-size:13px; color:#c9e3f4; }
+.header-actions { align-items:center; }
+main { max-width:1900px; padding:18px 20px 26px; }
+.panel {
+  border:1px solid #dce6ef;
+  border-radius:9px;
+  box-shadow:0 2px 9px rgba(19,48,78,.055);
+  margin-bottom:13px;
+  background:#fff;
+}
+.panel-title {
+  padding:13px 17px;
+  color:#0a315b;
+  font-size:15px;
+  background:linear-gradient(90deg,#f7fafc,#fff);
+  border-bottom:1px solid #e4ebf2;
+}
+.panel-body { padding:14px 16px; }
+.filters { grid-template-columns:repeat(5,minmax(130px,1fr)); gap:10px 12px; }
+.field label { color:#294866; font-size:11px; letter-spacing:.015em; }
+.field input,.field select,#busqueda {
+  padding:9px 10px;
+  border:1px solid #c8d6e3;
+  border-radius:5px;
+  color:#173657;
+  background:#fbfdff;
+}
+.field input:focus,.field select:focus,#busqueda:focus {
+  outline:2px solid rgba(28,116,181,.17);
+  border-color:#3988bd;
+}
+button,.link-button { border-radius:5px; }
+.btn-primary { background:#1261a6; }
+.btn-green { background:#20a957; }
+.btn-light { border:1px solid #cbd8e4; }
+.dashboard-group { margin:0 0 14px; }
+.group-heading {
+  display:flex; justify-content:space-between; align-items:end; gap:12px;
+  margin:0 2px 8px; padding:0 2px;
+}
+.group-heading h2 { margin:2px 0 0; font-size:16px; color:#0a315b; letter-spacing:-.2px; }
+.section-kicker { color:#63819c; font-size:9px; font-weight:800; letter-spacing:.12em; }
+.group-caption { color:#6a8094; font-size:11px; }
+.cards { gap:10px; margin:0; }
+.kpi-row { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.users-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.results-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.metric {
+  min-width:0; padding:13px 15px 12px; border-radius:8px;
+  background:#fff; border:1px solid #e0e8ef; box-shadow:0 2px 8px rgba(19,48,78,.045);
+}
+.metric:before { width:4px; }
+.metric-top { display:flex; align-items:center; gap:9px; min-height:25px; }
+.metric-icon {
+  width:27px; height:27px; flex:0 0 27px; display:grid; place-items:center;
+  border-radius:7px; background:#e8f1fa; color:#1261a6; font-size:17px; font-weight:800;
+}
+.metric .label { color:#4e657b; font-size:10px; line-height:1.25; letter-spacing:.055em; }
+.metric .value { margin-top:7px; color:#082f57; font-size:27px; line-height:1.05; font-weight:800; }
+.metric .note { margin-top:5px; color:#718397; font-size:10px; min-height:12px; }
+.metric-blue:before { background:#1769aa; }
+.metric-amber:before { background:#e6a008; }
+.metric-green:before { background:#20a957; }
+.metric-green .metric-icon { background:#e6f6ec; color:#159447; }
+.metric-amber .metric-icon { background:#fff4dc; color:#bd7c00; }
+.metric-primary .metric-icon { background:#e8f1fa; }
+.state-summary { grid-template-columns:repeat(5,minmax(0,1fr)); gap:9px; }
+.state-card { border:1px solid #e0e8ef; border-radius:7px; padding:11px 12px; background:#f8fbfd; }
+.state-card .state-name { color:#60778d; font-size:10px; min-height:23px; }
+.state-card .state-count { font-size:23px; color:#0a477d; }
+.charts { grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+.chart-box { min-height:270px; padding:12px; border:1px solid #e4ebf2; border-radius:8px; background:#fff; }
+.chart-box .field label { color:#143b61; font-size:12px; }
+.chart-box canvas { max-height:250px; }
+.map-wrap { height:570px; }
+#map { border-radius:0 0 8px 8px; }
+.map-toolbar { background:#f7fafc; }
+.table-scroll { border-radius:7px; }
+thead th { background:#eaf1f7; color:#153b60; }
+th,td { padding:9px 10px; }
+tbody tr:hover { background:#f1f7fc; }
+tbody tr.fila-seleccionada { background:#dceeff; }
+#mensajeAccion { box-shadow:0 3px 12px rgba(15,23,42,.08); }
+@media(max-width:1100px) {
+  .kpi-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .users-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .filters { grid-template-columns:repeat(3,minmax(130px,1fr)); }
+}
+@media(max-width:700px) {
+  main { padding:10px; }
+  header { padding:14px 16px; }
+  header h1 { font-size:20px; }
+  .kpi-row,.users-row,.results-row { grid-template-columns:1fr 1fr; }
+  .group-heading { align-items:start; flex-direction:column; gap:3px; }
+  .filters { grid-template-columns:1fr 1fr; }
+  .state-summary { grid-template-columns:1fr 1fr; }
+  .charts { grid-template-columns:1fr; }
+  .map-wrap { height:460px; }
+}
+@media(max-width:420px) {
+  .kpi-row,.users-row,.results-row { grid-template-columns:1fr; }
+}
+
+
+/* ===== Refinamiento ejecutivo: grafito, tarjetas claras y visuales tipo Power BI/Plotly ===== */
+:root {
+  --fondo:#202a35;
+  --texto:#e7edf4;
+  --borde:#3a4857;
+  --sombra:0 8px 22px rgba(0,0,0,.18);
+}
+html,body { background:#202a35; color:#e7edf4; }
+main { max-width:1920px; padding:18px 22px 26px; }
+header {
+  background:linear-gradient(112deg,#101d2b 0%,#173a59 62%,#205b7b 100%);
+  border-bottom:1px solid rgba(123,178,211,.35);
+  box-shadow:0 8px 22px rgba(0,0,0,.2);
+}
+header p { color:#c7d9e7; }
+.panel {
+  background:#2b3744;
+  border:1px solid #3c4a59;
+  box-shadow:0 8px 22px rgba(0,0,0,.15);
+  border-radius:11px;
+}
+.panel-title {
+  color:#edf4fa;
+  background:linear-gradient(100deg,#303e4d,#2b3744);
+  border-bottom:1px solid #435363;
+  letter-spacing:.01em;
+}
+.panel-body { color:#dce6ef; }
+.group-heading h2 { color:#f0f5fa; }
+.section-kicker { color:#91b7d2; }
+.group-caption,.footer-note,.status { color:#aebdca; }
+.field label { color:#c5d2de; }
+.field input,.field select,#busqueda,
+.followup-editor textarea,.followup-editor input,.followup-editor select,
+.metric-editor select,.metric-editor input {
+  color:#eaf1f7;
+  background:#344352;
+  border:1px solid #526273;
+  border-radius:7px;
+}
+.field input:focus,.field select:focus,#busqueda:focus {
+  outline:2px solid rgba(86,166,216,.22);
+  border-color:#69a9d1;
+}
+.field select option,.followup-editor select option,.metric-editor select option {
+  background:#344352;color:#eaf1f7;
+}
+.btn-light,.history-btn {
+  color:#e5edf5;background:#394958;border:1px solid #586a7b;
+}
+.btn-light:hover,.history-btn:hover { background:#46596a; }
+.btn-primary { background:#1e78b5; }
+.btn-green { background:#1b9a68; }
+.dashboard-group { margin-bottom:15px; }
+.metric {
+  min-height:116px;
+  padding:13px 15px 12px;
+  border:1px solid #e0e8ef;
+  border-radius:10px;
+  background:linear-gradient(145deg,#f9fbfd 0%,#eaf0f5 100%);
+  box-shadow:0 5px 14px rgba(0,0,0,.13);
+  color:#102b4e;
+}
+.metric:before { width:4px; opacity:.95; }
+.metric .label { color:#526a80; }
+.metric .value { color:#102f50; font-size:28px; }
+.metric .note { color:#6d8193; }
+/* Las mini-gráficas KPI se dibujan con los datos filtrados */
+.metric { isolation:isolate; position:relative; overflow:hidden; }
+.metric > *:not(.kpi-sparkline):not(.kpi-progress) { position:relative; z-index:2; }
+.kpi-sparkline {
+  position:absolute; z-index:1; right:8px; bottom:5px; width:43%; height:52px;
+  opacity:.78; pointer-events:none;
+}
+.kpi-sparkline svg { display:block; width:100%; height:100%; overflow:visible; }
+.kpi-progress {
+  position:absolute; z-index:1; right:13px; bottom:16px; width:38%; height:7px;
+  border-radius:99px; overflow:hidden; background:#dce5ec; pointer-events:none;
+}
+.kpi-progress span { display:block; width:0%; height:100%; border-radius:99px; background:linear-gradient(90deg,#4b91c4,#1769aa); transition:width .35s ease; }
+.metric-green .kpi-progress span { background:linear-gradient(90deg,#64bd8b,#15945a); }
+.metric-amber .kpi-progress span { background:linear-gradient(90deg,#e9c36a,#c58b27); }
+.metric .note { position:relative; z-index:2; max-width:67%; }
+.metric .value { position:relative; z-index:2; }
+.metric-icon { position:relative; z-index:2; }
+.metric-icon { box-shadow:inset 0 0 0 1px rgba(16,47,80,.05); }
+.state-card {
+  background:linear-gradient(145deg,#f8fafc,#e9f0f5);
+  border:1px solid #dce5ed;
+  border-radius:9px;
+  box-shadow:0 3px 9px rgba(0,0,0,.08);
+}
+.state-card .state-name { color:#5d7388; }
+.state-card .state-count { color:#123b60; }
+.charts { gap:13px; }
+.chart-box {
+  min-height:278px;
+  padding:14px 14px 12px;
+  background:linear-gradient(145deg,#f8fafc,#edf2f6);
+  border:1px solid #dbe4ec;
+  border-radius:10px;
+  box-shadow:0 4px 12px rgba(0,0,0,.09);
+}
+.chart-box .field label { color:#183c5e; font-size:12px; font-weight:700; }
+.chart-box canvas { max-height:250px; }
+.map-toolbar { background:#344352; border-bottom:1px solid #4b5c6d; }
+.map-hint { color:#c2cfda; }
+.map-wrap { height:560px; }
+.leaflet-popup-content-wrapper,.leaflet-popup-tip {
+  background:#f8fafc;color:#17324d;
+  box-shadow:0 8px 24px rgba(0,0,0,.22);
+}
+.leaflet-popup-content { margin:13px 15px; }
+.map-popup { min-width:220px; max-width:285px; font:12px/1.4 Arial,sans-serif; }
+.map-popup-title {
+  padding:0 0 9px;
+  margin:0 0 9px;
+  color:#123b60;
+  font-size:14px;
+  font-weight:800;
+  border-bottom:1px solid #dce5ed;
+}
+.map-popup-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; }
+.map-popup-grid div { min-width:0; display:flex; flex-direction:column; gap:2px; }
+.map-popup-grid span { color:#718397; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.map-popup-grid strong { color:#203d58; font-size:11px; overflow-wrap:anywhere; }
+.map-popup-grid .map-popup-comment { grid-column:1/-1; }
+.table-tools { color:#dce6ef; }
+.table-scroll { border:1px solid #536272; }
+table { background:#f8fafc; color:#1b3550; }
+thead th { background:#e4ebf1; color:#163b5c; }
+th,td { border-bottom:1px solid #dce5ed; }
+tbody tr:hover { background:#eaf2f8; }
+tbody tr.fila-seleccionada { background:#d6e9f7; }
+.scroll-top { background:#344352;border-color:#526273; }
+.scroll-top::-webkit-scrollbar-thumb,.table-scroll::-webkit-scrollbar-thumb { background:#71869a; }
+#mensajeAccion.ok { background:#dff5e9;color:#146341; }
+#mensajeAccion.error { background:#fde8e7;color:#9f2924; }
+.history-entry { background:#f3f7fa;border-color:#d8e2eb;color:#203d58; }
+.pill { background:#e4edf5;color:#294d6c; }
+@media(max-width:1100px) {
+  .filters { grid-template-columns:repeat(3,minmax(130px,1fr)); }
+}
+@media(max-width:700px) {
+  html,body { background:#202a35; }
+  main { padding:10px; }
+  .map-wrap { height:450px; }
+}
+
+
+/* Ajuste final de tarjetas KPI estilo Power BI */
+.metric {
+  min-height:132px;
+  padding:14px 16px 13px;
+  border-radius:11px;
+  background:linear-gradient(145deg,#fbfdff 0%,#edf3f8 100%);
+  border:1px solid #d8e2eb;
+  box-shadow:0 4px 12px rgba(5,24,43,.14), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.metric:before { width:4px; }
+.metric-top { gap:10px; }
+.metric-icon { width:30px; height:30px; flex-basis:30px; border-radius:8px; font-size:18px; }
+.metric .label { font-size:10px; font-weight:800; letter-spacing:.065em; color:#536a80; }
+.metric .value { margin-top:8px; font-size:30px; letter-spacing:-.7px; color:#102f50; }
+.metric .note { font-size:10px; line-height:1.35; color:#657c90; max-width:65%; }
+.metric .kpi-sparkline { right:8px; bottom:4px; width:44%; height:57px; opacity:.9; }
+.metric .kpi-progress { right:13px; bottom:20px; width:39%; height:7px; }
+.metric-green { border-color:#d3e8dc; }
+.metric-amber { border-color:#eadfca; }
+@media(max-width:700px) {
+  .metric { min-height:125px; }
+  .metric .value { font-size:26px; }
+  .metric .kpi-sparkline { width:42%; height:45px; }
+}
+
+
+/* ===== Corrección de estructura: un solo panel para todos los KPI ===== */
+:root {
+  --fondo:#f1f4f7;
+  --texto:#263445;
+  --borde:#dce4ed;
+  --sombra:0 3px 12px rgba(25,45,70,.07);
+}
+html, body { background:#f1f4f7 !important; color:#263445 !important; }
+.kpi-master-panel {
+  background:#fff !important;
+  border:1px solid #dce4ed !important;
+  border-radius:12px !important;
+  box-shadow:0 3px 12px rgba(25,45,70,.07) !important;
+  overflow:hidden;
+}
+.kpi-master-panel > .panel-title {
+  color:#174a7e !important;
+  background:#fff !important;
+  border-bottom:1px solid #e3eaf1 !important;
+}
+.kpi-master-body {
+  background:#fff !important;
+  color:#263445 !important;
+  padding:15px 16px 16px !important;
+}
+.kpi-master-body .dashboard-group {
+  margin:0 !important;
+  padding:2px 0 15px;
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+.kpi-master-body .dashboard-group + .dashboard-group {
+  padding-top:13px;
+  border-top:1px solid #e6edf3 !important;
+}
+.kpi-master-body .group-heading {
+  margin:0 2px 10px !important;
+  padding:0 !important;
+  align-items:center;
+}
+.kpi-master-body .group-heading h2 { color:#174a7e !important; }
+.kpi-master-body .section-kicker { color:#63819c !important; }
+.kpi-master-body .group-caption { color:#6a8094 !important; }
+.kpi-master-body .cards { display:grid; gap:10px; margin:0 !important; }
+.kpi-master-body .kpi-row { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.kpi-master-body .users-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.kpi-master-body .results-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+.kpi-master-body .metric {
+  min-width:0;
+  min-height:145px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  padding:13px 12px !important;
+  text-align:center;
+  color:#263445 !important;
+  background:#fff !important;
+  border:1px solid #dce6ef !important;
+  border-radius:9px !important;
+  box-shadow:0 2px 7px rgba(25,45,70,.05) !important;
+}
+.kpi-master-body .metric:before { content:none !important; display:none !important; width:0 !important; background:none !important; }
+.kpi-master-body .metric-top { display:contents !important; }
+.kpi-master-body .metric-icon {
+  order:0;
+  width:40px !important;
+  height:40px !important;
+  flex:0 0 40px !important;
+  display:grid;
+  place-items:center;
+  margin:0 0 4px;
+  border-radius:10px !important;
+  font-size:25px !important;
+  color:#1261a6 !important;
+  background:#e8f1fa !important;
+}
+.kpi-master-body .metric .value {
+  order:1;
+  margin:0 !important;
+  color:#082f57 !important;
+  font-size:29px !important;
+  line-height:1.08;
+  font-weight:800;
+  text-align:center;
+}
+.kpi-master-body .metric .label {
+  order:2;
+  margin-top:3px;
+  color:#294866 !important;
+  font-size:11px !important;
+  line-height:1.3;
+  font-weight:800 !important;
+  letter-spacing:.015em !important;
+  text-transform:none !important;
+  text-align:center;
+}
+.kpi-master-body .metric .note {
+  order:3;
+  max-width:100% !important;
+  margin:3px 0 0 !important;
+  color:#718397 !important;
+  font-size:10px !important;
+  line-height:1.3;
+  text-align:center;
+}
+.kpi-master-body .kpi-sparkline,
+.kpi-master-body .kpi-progress { display:none !important; }
+@media(max-width:1100px) {
+  .kpi-master-body .kpi-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kpi-master-body .users-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:700px) {
+  .kpi-master-body { padding:12px !important; }
+  .kpi-master-body .kpi-row,
+  .kpi-master-body .users-row,
+  .kpi-master-body .results-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .kpi-master-body .group-heading { align-items:flex-start; flex-direction:column; gap:3px; }
+}
+@media(max-width:420px) {
+  .kpi-master-body .kpi-row,
+  .kpi-master-body .users-row,
+  .kpi-master-body .results-row { grid-template-columns:1fr; }
+}
+
+
+
+/* ===== Correccion de paleta: fondo perla y superficies claras ===== */
+:root {
+  --fondo:#f1f4f7 !important;
+  --texto:#263445 !important;
+  --borde:#dce4ed !important;
+  --sombra:0 3px 12px rgba(25,45,70,.07) !important;
+  --azul:#174a7e !important;
+  --azul2:#2167a5 !important;
+}
+html, body { background:#f1f4f7 !important; color:#263445 !important; }
+main { background:transparent !important; }
+.panel {
+  background:#fff !important;
+  color:#263445 !important;
+  border:1px solid #dce4ed !important;
+  box-shadow:0 3px 12px rgba(25,45,70,.07) !important;
+}
+.panel-title {
+  color:#174a7e !important;
+  background:linear-gradient(90deg,#f7fafc,#fff) !important;
+  border-bottom:1px solid #e4ebf2 !important;
+}
+.panel-body { color:#263445 !important; background:#fff !important; }
+.group-heading h2 { color:#174a7e !important; }
+.section-kicker { color:#63819c !important; }
+.group-caption,.footer-note,.status,.map-hint { color:#64788b !important; }
+.field label { color:#294866 !important; }
+.field input,.field select,#busqueda,
+.followup-editor textarea,.followup-editor input,.followup-editor select,
+.metric-editor select,.metric-editor input {
+  color:#263445 !important; background:#fff !important; border:1px solid #cbd8e4 !important;
+}
+.field select option,.followup-editor select option,.metric-editor select option {
+  color:#263445 !important; background:#fff !important;
+}
+.btn-light,.history-btn {
+  color:#263445 !important; background:#fff !important; border:1px solid #cbd8e4 !important;
+}
+.btn-primary { color:#fff !important; background:#2167a5 !important; }
+.btn-green { color:#fff !important; background:#16805d !important; }
+.state-card,.history-entry {
+  color:#263445 !important; background:#f8fbfd !important; border-color:#dce4ed !important;
+  box-shadow:0 2px 7px rgba(25,45,70,.04) !important;
+}
+.state-card .state-name { color:#64788b !important; }
+.state-card .state-count { color:#174a7e !important; }
+.chart-box {
+  color:#263445 !important; background:#fff !important; border:1px solid #e0e8ef !important;
+  box-shadow:0 2px 8px rgba(25,45,70,.045) !important;
+}
+.chart-box .field label { color:#174a7e !important; }
+.map-toolbar { color:#263445 !important; background:#f7fafc !important; border-bottom:1px solid #dce4ed !important; }
+.table-tools { color:#263445 !important; }
+.table-scroll { border-color:#dce4ed !important; }
+.scroll-top { background:#f1f5f9 !important; border-color:#dce4ed !important; }
+.scroll-top::-webkit-scrollbar-thumb,.table-scroll::-webkit-scrollbar-thumb {
+  background:#a8b7c6 !important; border-color:#f1f5f9 !important;
+}
+.pill { background:#e9eff7 !important; color:#294d6c !important; }
+
+
+/* Estados SAP y seguimiento: integrados al panel único con tarjetas KPI uniformes */
+.kpi-master-body .status-sap-row { grid-template-columns:repeat(5,minmax(0,1fr)); }
+.kpi-master-body .status-followup-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+.kpi-master-body .status-sap-row .metric,
+.kpi-master-body .status-followup-row .metric { min-height:125px; }
+@media(max-width:1100px) {
+  .kpi-master-body .status-sap-row { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+@media(max-width:700px) {
+  .kpi-master-body .status-sap-row,
+  .kpi-master-body .status-followup-row { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(max-width:420px) {
+  .kpi-master-body .status-sap-row,
+  .kpi-master-body .status-followup-row { grid-template-columns:1fr; }
+}
 </style>
 </head>
 
@@ -149,11 +656,11 @@ tbody tr[data-reporte-id] { cursor:pointer; }
 
 <header>
   <div>
-    <h1>📍 Panel de reportes de medidores</h1>
-    <p>Consulta, analiza y exporta los reportes registrados</p>
+    <h1>Gestión de Pérdidas</h1>
+    <p>Análisis y seguimiento de reportes</p>
   </div>
   <div class="header-actions">
-    {% if session.get('rol') == 'admin' %}<button class="btn-green" id="btnExportar" type="button">📊 Exportar Excel filtrado</button>{% endif %}
+    {% if session.get('rol') == 'admin' %}<button class="btn-green" id="btnExportar" type="button">Exportar Excel</button>{% endif %}
     <a class="link-button btn-light" href="/">← Volver</a>
   </div>
 </header>
@@ -229,6 +736,25 @@ tbody tr[data-reporte-id] { cursor:pointer; }
           </select>
         </div>
 
+        <div class="field">
+          <label for="f_gestion">Gestión del reporte</label>
+          <select id="f_gestion">
+            <option value="">Todos los reportes</option>
+            <option value="trabajados">Trabajados</option>
+            <option value="sin_gestion">Sin gestión</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label for="f_seguimiento">Seguimiento administrativo</label>
+          <select id="f_seguimiento">
+            <option value="">Todos los estados</option>
+            <option value="SIN_SEGUIMIENTO">Sin seguimiento</option>
+            <option value="PENDIENTE">Pendiente</option>
+            <option value="RESUELTO">Resuelto</option>
+          </select>
+        </div>
+
         <div class="filter-actions">
           <button class="btn-primary" id="btnFiltrar" type="button">Aplicar filtros</button>
           <button class="btn-light" id="btnLimpiar" type="button">Limpiar filtros</button>
@@ -239,83 +765,139 @@ tbody tr[data-reporte-id] { cursor:pointer; }
     </div>
   </section>
 
-  <!-- KPI: tres filas de tres tarjetas -->
+  <!-- PANEL ÚNICO: TODOS LOS GRUPOS DE KPI -->
+  <section class="panel kpi-master-panel">
+    <div class="panel-title">Indicadores ejecutivos</div>
+    <div class="panel-body kpi-master-body">
 
-  <section class="cards">
-
-    <!-- FILA 1: ACTIVIDAD -->
-
-    <div class="metric">
-      <div class="label">Total de reportes</div>
-      <div class="value" id="m_total">0</div>
-      <div class="note">Según los filtros aplicados</div>
+  <!-- INDICADORES EJECUTIVOS: ACTIVIDAD -->
+  <section class="dashboard-group">
+    <div class="group-heading">
+      <div>
+        <span class="section-kicker">RESUMEN</span>
+        <h2>Actividad de reportes</h2>
+      </div>
+      <span class="group-caption">Indicadores según los filtros aplicados</span>
     </div>
-
-    <div class="metric">
-      <div class="label">Reportes trabajados</div>
-      <div class="value" id="m_trabajados">0</div>
-      <div class="note" id="m_trabajados_nota">0.0% del total de reportes</div>
-    </div>
-
-    <div class="metric success">
-      <div class="label">Reportes con OS SAP</div>
-      <div class="value" id="m_con_os">0</div>
-      <div class="note" id="m_con_os_nota">Reportes con número de orden registrado</div>
-    </div>
-
-    <!-- FILA 2: GESTIÓN Y RESULTADOS -->
-
-    <div class="metric alert">
-      <div class="label">Sin gestión registrada</div>
-      <div class="value" id="m_sin_atencion">0</div>
-      <div class="note" id="m_sin_atencion_nota">Reportes sin trabajar</div>
-    </div>
-
-    <div class="metric success">
-      <div class="label">Reportes efectivos</div>
-      <div class="value" id="m_efectivos">0</div>
-      <div class="note" id="m_efectivos_nota">0.0% del total de reportes</div>
-    </div>
-
-    <div class="metric">
-      <div class="label">Energía recuperada</div>
-      <div class="value" id="m_energia">0</div>
-      <div class="note">Total acumulado en kWh</div>
-    </div>
-
-    <!-- FILA 3: USUARIOS -->
-
-    <div class="metric">
-      <div class="label">Total de usuarios activos</div>
-      <div class="value" id="m_total_usuarios">—</div>
-      <div class="note" id="m_total_usuarios_nota">Usuarios activos sin administradores</div>
-    </div>
-
-    <div class="metric">
-      <div class="label">Usuarios con reportes</div>
-      <div class="value" id="m_usuarios">0</div>
-      <div class="note">Usuarios distintos con reportes</div>
-    </div>
-
-    <div class="metric">
-      <div class="label">Usuarios con reportes (%)</div>
-      <div class="value" id="m_usuarios_pct">—</div>
-      <div class="note" id="m_usuarios_pct_nota">Usuarios con reportes / usuarios activos</div>
-    </div>
-
+    <section class="cards kpi-row">
+      <div class="metric metric-primary">
+        <div class="metric-top"><span class="metric-icon">▤</span><span class="label">Total de reportes</span></div>
+        <div class="value" id="m_total">0</div>
+        <div class="note">Registros encontrados</div>
+        <div class="kpi-sparkline" id="spark_total" aria-hidden="true"></div>
+      </div>
+      <div class="metric metric-blue">
+        <div class="metric-top"><span class="metric-icon">✓</span><span class="label">Reportes trabajados</span></div>
+        <div class="value" id="m_trabajados">0</div>
+        <div class="note" id="m_trabajados_nota">0.0% del total de reportes</div>
+        <div class="kpi-sparkline" id="spark_trabajados" aria-hidden="true"></div>
+      </div>
+      <div class="metric metric-amber">
+        <div class="metric-top"><span class="metric-icon">◷</span><span class="label">Sin gestión</span></div>
+        <div class="value" id="m_sin_atencion">0</div>
+        <div class="note" id="m_sin_atencion_nota">Reportes sin trabajar</div>
+        <div class="kpi-sparkline" id="spark_sin_gestion" aria-hidden="true"></div>
+      </div>
+      <div class="metric metric-green">
+        <div class="metric-top"><span class="metric-icon">◎</span><span class="label">Reportes efectivos</span></div>
+        <div class="value" id="m_efectivos">0</div>
+        <div class="note" id="m_efectivos_nota">0.0% de reportes trabajados</div>
+        <div class="kpi-sparkline" id="spark_efectivos" aria-hidden="true"></div>
+      </div>
+    </section>
   </section>
 
-  <section class="panel">
-    <div class="panel-title">Estado de los reportes con OS SAP</div>
-    <div class="panel-body">
-      <div class="state-summary">
-        <div class="state-card"><div class="state-name">Generada</div><div class="state-count" id="sap_generada">0</div></div>
-        <div class="state-card"><div class="state-name">Pendiente de asignar</div><div class="state-count" id="sap_pendiente">0</div></div>
-        <div class="state-card"><div class="state-name">En tratamiento</div><div class="state-count" id="sap_tratamiento">0</div></div>
-        <div class="state-card"><div class="state-name">Resuelta</div><div class="state-count" id="sap_resuelta">0</div></div>
-        <div class="state-card"><div class="state-name">Anulada</div><div class="state-count" id="sap_anulada">0</div></div>
+  <!-- INDICADORES DE PARTICIPACIÓN DE USUARIOS -->
+  <section class="dashboard-group">
+    <div class="group-heading">
+      <div>
+        <span class="section-kicker">PARTICIPACIÓN</span>
+        <h2>Actividad de usuarios</h2>
       </div>
-      <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div>
+      <span class="group-caption">Cobertura de usuarios con reportes</span>
+    </div>
+    <section class="cards users-row">
+      <div class="metric">
+        <div class="metric-top"><span class="metric-icon">♙</span><span class="label">Total de usuarios activos</span></div>
+        <div class="value" id="m_total_usuarios">—</div>
+        <div class="note" id="m_total_usuarios_nota">Usuarios activos sin administradores</div>
+        <div class="kpi-progress" id="progress_usuarios_activos" aria-hidden="true"><span></span></div>
+      </div>
+      <div class="metric">
+        <div class="metric-top"><span class="metric-icon">♟</span><span class="label">Usuarios con reportes</span></div>
+        <div class="value" id="m_usuarios">0</div>
+        <div class="note">Usuarios distintos en los resultados</div>
+        <div class="kpi-sparkline" id="spark_usuarios" aria-hidden="true"></div>
+      </div>
+      <div class="metric metric-green">
+        <div class="metric-top"><span class="metric-icon">%</span><span class="label">Usuarios con reportes</span></div>
+        <div class="value" id="m_usuarios_pct">—</div>
+        <div class="note" id="m_usuarios_pct_nota">Usuarios con reportes / usuarios activos</div>
+        <div class="kpi-progress" id="progress_usuarios_pct" aria-hidden="true"><span></span></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- RECUPERACIÓN Y ÓRDENES -->
+  <section class="dashboard-group">
+    <div class="group-heading">
+      <div>
+        <span class="section-kicker">RESULTADOS OPERATIVOS</span>
+        <h2>Recuperación y órdenes SAP</h2>
+      </div>
+    </div>
+    <section class="cards results-row">
+      <div class="metric metric-green">
+        <div class="metric-top"><span class="metric-icon">ϟ</span><span class="label">Energía recuperada</span></div>
+        <div class="value" id="m_energia">0</div>
+        <div class="note">Total acumulado en kWh</div>
+        <div class="kpi-sparkline" id="spark_energia" aria-hidden="true"></div>
+      </div>
+      <div class="metric metric-blue">
+        <div class="metric-top"><span class="metric-icon">▣</span><span class="label">Reportes con OS SAP</span></div>
+        <div class="value" id="m_con_os">0</div>
+        <div class="note" id="m_con_os_nota">Reportes con número de orden registrado</div>
+        <div class="kpi-sparkline" id="spark_os" aria-hidden="true"></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ESTADO DE ÓRDENES SAP: MISMO PANEL Y ESTILO DE KPI -->
+  <section class="dashboard-group">
+    <div class="group-heading">
+      <div>
+        <span class="section-kicker">RESULTADOS OPERATIVOS</span>
+        <h2>Estado de los reportes con OS SAP</h2>
+      </div>
+      <span class="group-caption">Conteo por reporte según los filtros aplicados</span>
+    </div>
+    <section class="cards status-sap-row">
+      <div class="metric"><div class="metric-top"><span class="metric-icon">▣</span><span class="label">Generada</span></div><div class="value" id="sap_generada">0</div></div>
+      <div class="metric"><div class="metric-top"><span class="metric-icon">◷</span><span class="label">Pendiente de asignar</span></div><div class="value" id="sap_pendiente">0</div></div>
+      <div class="metric"><div class="metric-top"><span class="metric-icon">⚙</span><span class="label">En tratamiento</span></div><div class="value" id="sap_tratamiento">0</div></div>
+      <div class="metric metric-green"><div class="metric-top"><span class="metric-icon">✓</span><span class="label">Resuelta</span></div><div class="value" id="sap_resuelta">0</div></div>
+      <div class="metric metric-amber"><div class="metric-top"><span class="metric-icon">×</span><span class="label">Anulada</span></div><div class="value" id="sap_anulada">0</div></div>
+    </section>
+    <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div>
+  </section>
+
+  <!-- ESTADO DEL SEGUIMIENTO ADMINISTRATIVO: MISMO PANEL Y ESTILO DE KPI -->
+  <section class="dashboard-group">
+    <div class="group-heading">
+      <div>
+        <span class="section-kicker">SEGUIMIENTO</span>
+        <h2>Estado del seguimiento administrativo</h2>
+      </div>
+      <span class="group-caption">Conteo independiente del estado de las órdenes SAP</span>
+    </div>
+    <section class="cards followup-summary status-followup-row">
+      <div class="metric"><div class="metric-top"><span class="metric-icon">○</span><span class="label">Sin seguimiento</span></div><div class="value" id="seg_sin">0</div></div>
+      <div class="metric metric-amber"><div class="metric-top"><span class="metric-icon">◷</span><span class="label">Pendiente</span></div><div class="value" id="seg_pendiente">0</div></div>
+      <div class="metric metric-green"><div class="metric-top"><span class="metric-icon">✓</span><span class="label">Resuelto</span></div><div class="value" id="seg_resuelto">0</div></div>
+    </section>
+    <div class="footer-note">Conteo según los filtros aplicados.</div>
+  </section>
+
     </div>
   </section>
 
@@ -344,28 +926,7 @@ tbody tr[data-reporte-id] { cursor:pointer; }
     </div>
   </section>
 
-  <section class="panel">
-    <div class="panel-title">Estado del seguimiento administrativo</div>
-    <div class="panel-body">
-      <div class="state-summary followup-summary">
-        <div class="state-card">
-          <div class="state-name">Sin seguimiento</div>
-          <div class="state-count" id="seg_sin">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-name">Pendiente</div>
-          <div class="state-count" id="seg_pendiente">0</div>
-        </div>
-        <div class="state-card">
-          <div class="state-name">Resuelto</div>
-          <div class="state-count" id="seg_resuelto">0</div>
-        </div>
-      </div>
-      <div class="footer-note">
-        Conteo independiente del estado de las órdenes SAP y según los filtros aplicados.
-      </div>
-    </div>
-  </section>
+
 
   <section class="panel">
     <div class="panel-title">Mapa de reportes</div>
@@ -585,7 +1146,9 @@ function filtrosActuales() {
     prioridad: document.getElementById("f_prioridad").value,
     empresa: document.getElementById("f_empresa").value,
     sub_empresa: document.getElementById("f_subempresa").value,
-    efectividad: document.getElementById("f_efectividad").value
+    efectividad: document.getElementById("f_efectividad").value,
+    gestion: document.getElementById("f_gestion").value,
+    seguimiento: document.getElementById("f_seguimiento").value
   };
 }
 
@@ -693,6 +1256,14 @@ function fechaISO(valor) {
   return "";
 }
 
+function reporteEstaTrabajado(r) {
+  const tieneOS = Boolean(String(r.orden_sap || "").trim());
+  const tieneComentario = Boolean(String(r.seguimiento_comentario || "").trim());
+  const tieneBandera = valorEstadoSeguimiento(r) !== "SIN_SEGUIMIENTO";
+  const evaluado = valorEfectividad(r) !== "";
+  return tieneOS || tieneComentario || tieneBandera || evaluado;
+}
+
 function aplicarFiltrosLocales() {
   const f = filtrosActuales();
 
@@ -708,6 +1279,9 @@ function aplicarFiltrosLocales() {
       (!f.prioridad || String(r.prioridad ?? "") === f.prioridad) &&
       (!f.empresa || String(r.empresa || "").trim() === f.empresa) &&
       (!f.sub_empresa || String(r.sub_empresa || "").trim() === f.sub_empresa) &&
+      (!f.gestion || (f.gestion === "trabajados" && reporteEstaTrabajado(r)) ||
+        (f.gestion === "sin_gestion" && !reporteEstaTrabajado(r))) &&
+      (!f.seguimiento || valorEstadoSeguimiento(r) === f.seguimiento) &&
       (
         !f.efectividad ||
         (f.efectividad === "true" && efectividad === "true") ||
@@ -809,7 +1383,13 @@ function actualizarChart(
       datasets:[{
         label:"Reportes",
         data:values,
-        borderWidth:1
+        backgroundColor: horizontal ? "rgba(31,111,170,.78)" : "rgba(31,111,170,.78)",
+        borderColor: "#1f6faa",
+        borderWidth: 1,
+        borderRadius: 5,
+        borderSkipped: false,
+        maxBarThickness: 34,
+        hoverBackgroundColor: "#164f7d"
       }]
     },
     plugins: mostrarEtiquetas
@@ -819,16 +1399,27 @@ function actualizarChart(
       responsive:true,
       maintainAspectRatio:true,
       indexAxis:horizontal?"y":"x",
-      layout:{
-        padding:{top:20}
-      },
+      layout:{padding:{top:18,right:8,left:4,bottom:2}},
       plugins:{
         legend:{display:false},
-        tooltip:{enabled:true}
+        tooltip:{
+          backgroundColor:"#102b45", titleColor:"#fff", bodyColor:"#e7f0f7",
+          padding:11, cornerRadius:8, displayColors:false
+        }
       },
       scales:tipo==="bar" ? {
-        x:{beginAtZero:true,ticks:{precision:0}},
-        y:{beginAtZero:true,ticks:{precision:0}}
+        x:{
+          beginAtZero:true,
+          grid:{display:!horizontal,color:"rgba(120,145,166,.16)",drawBorder:false},
+          border:{display:false},
+          ticks:{precision:0,color:"#60758a",font:{size:10}}
+        },
+        y:{
+          beginAtZero:true,
+          grid:{display:horizontal,color:"rgba(120,145,166,.16)",drawBorder:false},
+          border:{display:false},
+          ticks:{precision:0,color:"#60758a",font:{size:10}}
+        }
       } : {}
     }
   });
@@ -859,6 +1450,11 @@ function actualizarChartCondiciones(data) {
             label:"Cantidad de reportes",
             data:cantidades,
             yAxisID:"y",
+            backgroundColor:"rgba(31,111,170,.78)",
+            borderColor:"#1f6faa",
+            borderRadius:5,
+            borderSkipped:false,
+            maxBarThickness:34,
             borderWidth:1
           },
           {
@@ -866,9 +1462,15 @@ function actualizarChartCondiciones(data) {
             label:"Porcentaje del total",
             data:porcentajes,
             yAxisID:"y1",
-            borderWidth:2,
-            tension:.25,
-            pointRadius:4
+            borderColor:"#d49a32",
+            backgroundColor:"rgba(212,154,50,.12)",
+            borderWidth:2.5,
+            tension:.38,
+            pointRadius:3,
+            pointHoverRadius:5,
+            pointBackgroundColor:"#fff",
+            pointBorderColor:"#d49a32",
+            fill:false
           }
         ]
       },
@@ -877,8 +1479,9 @@ function actualizarChartCondiciones(data) {
         maintainAspectRatio:true,
         interaction:{mode:"index",intersect:false},
         plugins:{
-          legend:{display:true,position:"bottom"},
+          legend:{display:true,position:"bottom",labels:{color:"#60758a",usePointStyle:true,boxWidth:7,font:{size:10}}},
           tooltip:{
+            backgroundColor:"#102b45",titleColor:"#fff",bodyColor:"#e7f0f7",padding:11,cornerRadius:8,
             callbacks:{
               label:(ctx)=>
                 ctx.dataset.yAxisID==="y1"
@@ -890,20 +1493,87 @@ function actualizarChartCondiciones(data) {
         scales:{
           y:{
             beginAtZero:true,
-            title:{display:true,text:"Cantidad"},
-            ticks:{precision:0}
+            title:{display:false},
+            grid:{color:"rgba(120,145,166,.16)",drawBorder:false},
+            border:{display:false},
+            ticks:{precision:0,color:"#60758a",font:{size:10}}
           },
           y1:{
             beginAtZero:true,
             position:"right",
-            title:{display:true,text:"Porcentaje"},
-            ticks:{callback:v=>v+"%"},
+            title:{display:false},
+            border:{display:false},
+            ticks:{callback:v=>v+"%",color:"#60758a",font:{size:10}},
             grid:{drawOnChartArea:false}
           }
         }
       }
     }
   );
+}
+
+function crearSparklineKPI(data, selector, obtenerValor, color) {
+  const contenedor = document.getElementById(selector);
+  if (!contenedor) return;
+
+  const fechas = data.map(r => fechaISO(r.fecha)).filter(Boolean).sort();
+  if (!fechas.length) {
+    contenedor.innerHTML = '';
+    return;
+  }
+
+  const meses = new Set(fechas.map(f => f.slice(0,7)));
+  const usarMes = meses.size > 1;
+  const grupos = new Map();
+  data.forEach(r => {
+    const fecha = fechaISO(r.fecha);
+    if (!fecha) return;
+    const clave = usarMes ? fecha.slice(0,7) : fecha;
+    if (!grupos.has(clave)) grupos.set(clave, []);
+    grupos.get(clave).push(r);
+  });
+
+  const puntos = [...grupos.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-8)
+    .map(([clave, filas]) => Number(obtenerValor(filas)) || 0);
+  if (!puntos.length) { contenedor.innerHTML = ''; return; }
+
+  const max = Math.max(...puntos, 1);
+  const min = Math.min(...puntos, 0);
+  const rango = max - min || 1;
+  const coords = puntos.map((v,i) => ({
+    x: 3 + (i * 174 / Math.max(puntos.length - 1, 1)),
+    y: 43 - ((v - min) / rango) * 34
+  }));
+  const linea = coords.map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+  const area = `${linea} L${coords[coords.length-1].x.toFixed(1)},50 L${coords[0].x.toFixed(1)},50 Z`;
+  contenedor.innerHTML = `<svg viewBox="0 0 180 54" preserveAspectRatio="none" focusable="false">
+    <path d="${area}" fill="${color}" opacity=".13"></path>
+    <path d="${linea}" fill="none" stroke="${color}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"></path>
+    <circle cx="${coords[coords.length-1].x.toFixed(1)}" cy="${coords[coords.length-1].y.toFixed(1)}" r="3.1" fill="${color}" stroke="#f8fbfd" stroke-width="1.5"></circle>
+  </svg>`;
+}
+
+function actualizarVisualesKPI(data, usuarios) {
+  const trabajados = filas => filas.filter(reporteEstaTrabajado).length;
+  const efectivos = filas => filas.filter(r => valorEfectividad(r) === 'true').length;
+  const sinGestion = filas => filas.length - trabajados(filas);
+  const energia = filas => filas.reduce((s,r)=>s+(Number(r.energia_recuperada_kwh)||0),0);
+  const conOS = filas => filas.filter(r=>String(r.orden_sap||'').trim()).length;
+  const usuariosMes = filas => new Set(filas.map(r=>String(r.usuario||'').trim()).filter(Boolean)).size;
+
+  crearSparklineKPI(data, 'spark_total', filas => filas.length, '#2475ad');
+  crearSparklineKPI(data, 'spark_trabajados', trabajados, '#2475ad');
+  crearSparklineKPI(data, 'spark_sin_gestion', sinGestion, '#c58b27');
+  crearSparklineKPI(data, 'spark_efectivos', efectivos, '#15945a');
+  crearSparklineKPI(data, 'spark_usuarios', usuariosMes, '#2475ad');
+  crearSparklineKPI(data, 'spark_energia', energia, '#15945a');
+  crearSparklineKPI(data, 'spark_os', conOS, '#2475ad');
+
+  const cobertura = totalUsuariosActivos > 0 ? Math.min(100, (usuarios.size / totalUsuariosActivos) * 100) : 0;
+  const barraActivos = document.querySelector('#progress_usuarios_activos span');
+  const barraPct = document.querySelector('#progress_usuarios_pct span');
+  if (barraActivos) barraActivos.style.width = `${cobertura}%`;
+  if (barraPct) barraPct.style.width = `${cobertura}%`;
 }
 
 function actualizarResumen(data) {
@@ -918,14 +1588,7 @@ function actualizarResumen(data) {
   ).length;
 
   // Un reporte trabajado se cuenta una sola vez.
-  const trabajados = data.filter(r => {
-    const tieneOS = Boolean(String(r.orden_sap || "").trim());
-    const tieneComentario = Boolean(String(r.seguimiento_comentario || "").trim());
-    const tieneBandera = valorEstadoSeguimiento(r) !== "SIN_SEGUIMIENTO";
-    const evaluado = valorEfectividad(r) !== "";
-
-    return tieneOS || tieneComentario || tieneBandera || evaluado;
-  }).length;
+  const trabajados = data.filter(reporteEstaTrabajado).length;
 
   const efectivos = data.filter(r =>
     valorEfectividad(r) === "true"
@@ -1102,6 +1765,8 @@ function actualizarResumen(data) {
     resumenSubempresas.map(x=>x[1]),
     true
   );
+
+  actualizarVisualesKPI(data, usuarios);
 }
 
 function seleccionarReporteDesdeMapa(id) {
@@ -1161,15 +1826,16 @@ function enfocarReporteEnMapa(id) {
  */
 function popupHtml(r) {
   return `
-    <div style="min-width:190px">
-      <strong>Medidor: ${textoSeguro(r.aparato || "Sin dato")}</strong>
-      <hr>
-      <div><strong>MRU:</strong> ${textoSeguro(r.mru || "—")}</div>
-      <div><strong>Condición:</strong> ${textoSeguro(condicionTexto(r.condicion))}</div>
-      <div><strong>Prioridad:</strong> ${textoSeguro(prioridadTexto(r.prioridad))}</div>
-      <div><strong>Usuario:</strong> ${textoSeguro(r.usuario || "—")}</div>
-      <div><strong>Fecha:</strong> ${textoSeguro(formatoFecha(r.fecha) || "—")}</div>
-      <div><strong>Comentario:</strong> ${textoSeguro(r.comentario || "—")}</div>
+    <div class="map-popup">
+      <div class="map-popup-title">Medidor ${textoSeguro(r.aparato || "Sin dato")}</div>
+      <div class="map-popup-grid">
+        <div><span>MRU</span><strong>${textoSeguro(r.mru || "—")}</strong></div>
+        <div><span>Prioridad</span><strong>${textoSeguro(prioridadTexto(r.prioridad))}</strong></div>
+        <div><span>Condición</span><strong>${textoSeguro(condicionTexto(r.condicion))}</strong></div>
+        <div><span>Usuario</span><strong>${textoSeguro(r.usuario || "—")}</strong></div>
+        <div><span>Fecha</span><strong>${textoSeguro(formatoFecha(r.fecha) || "—")}</strong></div>
+        <div class="map-popup-comment"><span>Comentario</span><strong>${textoSeguro(r.comentario || "—")}</strong></div>
+      </div>
     </div>
   `;
 }
@@ -1774,6 +2440,16 @@ document.getElementById("f_efectividad").addEventListener("change",() => {
   aplicarFiltrosLocales();
 });
 
+document.getElementById("f_gestion").addEventListener("change",() => {
+  reporteSeleccionadoId = null;
+  aplicarFiltrosLocales();
+});
+
+document.getElementById("f_seguimiento").addEventListener("change",() => {
+  reporteSeleccionadoId = null;
+  aplicarFiltrosLocales();
+});
+
 document.getElementById("btnMostrarTodos").addEventListener(
   "click",
   mostrarTodosLosReportes
@@ -1789,6 +2465,8 @@ document.getElementById("btnLimpiar").addEventListener("click",() => {
     "f_empresa",
     "f_subempresa",
     "f_efectividad",
+    "f_gestion",
+    "f_seguimiento",
     "busqueda"
   ].forEach(id => {
     document.getElementById(id).value = "";
