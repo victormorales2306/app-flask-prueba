@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -649,6 +648,121 @@ main { background:transparent !important; }
   .kpi-master-body .status-sap-row,
   .kpi-master-body .status-followup-row { grid-template-columns:1fr; }
 }
+
+
+/* ===== Rediseño final del dashboard: KPI claros, con acento de color y barras de distribución ===== */
+.kpi-master-panel > .panel-title {
+  display:flex !important; align-items:baseline !important; gap:10px;
+  font-size:16px !important;
+}
+.kpi-periodo {
+  font-size:11px; font-weight:600; color:#64788b;
+  background:#eef3f8; border:1px solid #dce4ed; border-radius:999px; padding:3px 10px;
+}
+.kpi-master-body .dashboard-group { padding-bottom:18px; }
+.kpi-master-body .group-heading h2 { font-size:14px !important; letter-spacing:.02em; }
+
+/* Tarjeta KPI */
+.kpi-master-body .metric {
+  min-height:136px !important;
+  padding:13px 15px !important;
+  display:flex !important; flex-direction:column; justify-content:flex-start;
+  text-align:left !important; gap:2px !important;
+  border-radius:11px !important;
+  background:linear-gradient(180deg,#ffffff 0%,#f7fafc 100%) !important;
+  border:1px solid #e1e8ef !important;
+  box-shadow:0 2px 6px rgba(25,45,70,.06) !important;
+  position:relative; overflow:hidden;
+}
+.kpi-master-body .metric::before {
+  content:"" !important; display:block !important;
+  position:absolute; top:0; left:0; right:0; height:3px;
+  background:#94a3b8;
+}
+.kpi-master-body .metric.metric-primary::before { background:#2167a5; }
+.kpi-master-body .metric.metric-blue::before { background:#3988bd; }
+.kpi-master-body .metric.metric-amber::before { background:#d97706; }
+.kpi-master-body .metric.metric-green::before { background:#16805d; }
+
+.kpi-master-body .metric-head { display:flex; align-items:center; gap:9px; }
+.kpi-master-body .metric-icon {
+  width:32px !important; height:32px !important; flex:0 0 32px !important;
+  border-radius:8px !important; font-size:17px !important;
+  background:#e8f1fa !important; color:#2167a5 !important;
+}
+.kpi-master-body .metric.metric-green .metric-icon { background:#e2f4ea !important; color:#16805d !important; }
+.kpi-master-body .metric.metric-amber .metric-icon { background:#fdf1dc !important; color:#b45309 !important; }
+.kpi-master-body .metric .label {
+  font-size:11.5px !important; font-weight:700 !important; color:#536477 !important;
+  text-transform:none !important; letter-spacing:.01em !important; line-height:1.25;
+}
+.kpi-master-body .metric .value {
+  font-size:30px !important; font-weight:800 !important; margin-top:6px !important;
+  color:#174a7e !important; font-variant-numeric:tabular-nums; order:0;
+}
+.kpi-master-body .metric .value { order:1; }
+.kpi-master-body .metric .label { order:2; }
+.kpi-master-body .metric .note {
+  order:3; margin-top:2px !important; font-size:11px !important; color:#7c8ea0 !important;
+  max-width:60% !important; text-align:left !important;
+  padding-right:4px;
+}
+.kpi-master-body .metric-head { order:0; }
+.kpi-master-body .kpi-sparkline {
+  display:block !important; right:10px !important; bottom:10px !important;
+  width:34% !important; height:32px !important; opacity:.85;
+}
+.kpi-master-body .kpi-progress {
+  display:block !important; position:static !important; width:100% !important;
+  height:6px !important; margin-top:8px !important; background:#e6edf3 !important;
+}
+.kpi-master-body .kpi-progress span { background:linear-gradient(90deg,#3988bd,#16805d) !important; }
+
+/* Iconos por estado (SAP y seguimiento) */
+.kpi-master-body .ic-gen { background:#dbeafe !important; color:#1d4ed8 !important; }
+.kpi-master-body .ic-pend { background:#fef3c7 !important; color:#92400e !important; }
+.kpi-master-body .ic-trat { background:#ede9fe !important; color:#6d28d9 !important; }
+.kpi-master-body .ic-res { background:#dcfce7 !important; color:#166534 !important; }
+.kpi-master-body .ic-anu { background:#fee2e2 !important; color:#991b1b !important; }
+
+/* Barra de distribución apilada */
+.kpi-bar {
+  display:flex; height:12px; border-radius:99px; overflow:hidden;
+  background:#e6edf3; margin:12px 2px 6px; border:1px solid #dce4ed;
+}
+.kpi-bar-seg { display:block; height:100%; transition:width .4s ease; min-width:0; }
+.seg-blue { background:#3988bd; }
+.seg-amber { background:#e0a63a; }
+.seg-gen { background:#5b8fd9; }
+.seg-pend { background:#e0a63a; }
+.seg-trat { background:#8b6fd9; }
+.seg-res { background:#3fae74; }
+.seg-anu { background:#d97070; }
+.kpi-legend { display:flex; gap:16px; flex-wrap:wrap; padding:0 2px; color:#64788b; font-size:11px; }
+.kpi-legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px; }
+.kpi-legend .seg-blue { background:#3988bd; }
+.kpi-legend .seg-amber { background:#e0a63a; }
+
+/* Etiquetas de valor y tendencia sobre la sparkline */
+.kpi-spark-val {
+  position:absolute; z-index:3; right:10px; bottom:12px;
+  font-size:11px; font-weight:800; color:#33526f;
+  background:rgba(255,255,255,.92); border:1px solid #dbe4ec;
+  border-radius:6px; padding:1px 6px; pointer-events:none;
+  font-variant-numeric:tabular-nums;
+}
+.kpi-spark-trend {
+  position:absolute; z-index:3; right:10px; bottom:46px;
+  font-size:10px; font-weight:800; border-radius:6px; padding:1px 6px;
+  pointer-events:none;
+}
+.kpi-trend-up { background:#e2f4ea; color:#16805d; }
+.kpi-trend-down { background:#fdeaea; color:#b23434; }
+
+@media(max-width:700px) {
+  .kpi-master-body .metric .value { font-size:25px !important; }
+  .kpi-bar { height:10px; }
+}
 </style>
 </head>
 
@@ -765,137 +879,156 @@ main { background:transparent !important; }
     </div>
   </section>
 
-  <!-- PANEL ÚNICO: TODOS LOS GRUPOS DE KPI -->
+  <!-- PANEL ÚNICO: RESUMEN EJECUTIVO -->
   <section class="panel kpi-master-panel">
-    <div class="panel-title">Indicadores ejecutivos</div>
+    <div class="panel-title">Resumen <span class="kpi-periodo">según filtros aplicados</span></div>
     <div class="panel-body kpi-master-body">
 
-  <!-- INDICADORES EJECUTIVOS: ACTIVIDAD -->
+  <!-- ACTIVIDAD -->
   <section class="dashboard-group">
     <div class="group-heading">
       <div>
-        <span class="section-kicker">RESUMEN</span>
-        <h2>Actividad de reportes</h2>
+        <span class="section-kicker">ACTIVIDAD</span>
+        <h2>Reportes y gestión</h2>
       </div>
-      <span class="group-caption">Indicadores según los filtros aplicados</span>
+      <span class="group-caption">Volumen de reportes y avance de gestión</span>
     </div>
     <section class="cards kpi-row">
       <div class="metric metric-primary">
-        <div class="metric-top"><span class="metric-icon">▤</span><span class="label">Total de reportes</span></div>
+        <div class="metric-head"><span class="metric-icon">▤</span><span class="label">Total de reportes</span></div>
         <div class="value" id="m_total">0</div>
-        <div class="note">Registros encontrados</div>
+        <div class="note">Registros que cumplen los filtros</div>
         <div class="kpi-sparkline" id="spark_total" aria-hidden="true"></div>
       </div>
       <div class="metric metric-blue">
-        <div class="metric-top"><span class="metric-icon">✓</span><span class="label">Reportes trabajados</span></div>
+        <div class="metric-head"><span class="metric-icon">✓</span><span class="label">Trabajados</span></div>
         <div class="value" id="m_trabajados">0</div>
-        <div class="note" id="m_trabajados_nota">0.0% del total de reportes</div>
+        <div class="note" id="m_trabajados_nota">0.0% del total</div>
         <div class="kpi-sparkline" id="spark_trabajados" aria-hidden="true"></div>
       </div>
       <div class="metric metric-amber">
-        <div class="metric-top"><span class="metric-icon">◷</span><span class="label">Sin gestión</span></div>
+        <div class="metric-head"><span class="metric-icon">◷</span><span class="label">Sin gestión</span></div>
         <div class="value" id="m_sin_atencion">0</div>
-        <div class="note" id="m_sin_atencion_nota">Reportes sin trabajar</div>
+        <div class="note" id="m_sin_atencion_nota">0.0% sin trabajar</div>
         <div class="kpi-sparkline" id="spark_sin_gestion" aria-hidden="true"></div>
       </div>
       <div class="metric metric-green">
-        <div class="metric-top"><span class="metric-icon">◎</span><span class="label">Reportes efectivos</span></div>
+        <div class="metric-head"><span class="metric-icon">◎</span><span class="label">Efectivos</span></div>
         <div class="value" id="m_efectivos">0</div>
-        <div class="note" id="m_efectivos_nota">0.0% de reportes trabajados</div>
+        <div class="note" id="m_efectivos_nota">0.0% de trabajados</div>
         <div class="kpi-sparkline" id="spark_efectivos" aria-hidden="true"></div>
       </div>
     </section>
+    <div class="kpi-bar" aria-hidden="true">
+      <span class="kpi-bar-seg seg-blue" id="bar_trabajados" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-amber" id="bar_sin_gestion" style="width:0%"></span>
+    </div>
+    <div class="kpi-legend">
+      <span><i class="seg-blue"></i> Trabajados</span>
+      <span><i class="seg-amber"></i> Sin gestión</span>
+    </div>
   </section>
 
-  <!-- INDICADORES DE PARTICIPACIÓN DE USUARIOS -->
+  <!-- PARTICIPACIÓN -->
   <section class="dashboard-group">
     <div class="group-heading">
       <div>
         <span class="section-kicker">PARTICIPACIÓN</span>
-        <h2>Actividad de usuarios</h2>
+        <h2>Usuarios</h2>
       </div>
-      <span class="group-caption">Cobertura de usuarios con reportes</span>
+      <span class="group-caption">Cobertura de usuarios que generan reportes</span>
     </div>
     <section class="cards users-row">
       <div class="metric">
-        <div class="metric-top"><span class="metric-icon">♙</span><span class="label">Total de usuarios activos</span></div>
+        <div class="metric-head"><span class="metric-icon">♙</span><span class="label">Usuarios activos</span></div>
         <div class="value" id="m_total_usuarios">—</div>
-        <div class="note" id="m_total_usuarios_nota">Usuarios activos sin administradores</div>
-        <div class="kpi-progress" id="progress_usuarios_activos" aria-hidden="true"><span></span></div>
+        <div class="note" id="m_total_usuarios_nota">Sin administradores</div>
       </div>
-      <div class="metric">
-        <div class="metric-top"><span class="metric-icon">♟</span><span class="label">Usuarios con reportes</span></div>
+      <div class="metric metric-blue">
+        <div class="metric-head"><span class="metric-icon">♟</span><span class="label">Con reportes</span></div>
         <div class="value" id="m_usuarios">0</div>
         <div class="note">Usuarios distintos en los resultados</div>
         <div class="kpi-sparkline" id="spark_usuarios" aria-hidden="true"></div>
       </div>
       <div class="metric metric-green">
-        <div class="metric-top"><span class="metric-icon">%</span><span class="label">Usuarios con reportes</span></div>
+        <div class="metric-head"><span class="metric-icon">%</span><span class="label">Cobertura</span></div>
         <div class="value" id="m_usuarios_pct">—</div>
-        <div class="note" id="m_usuarios_pct_nota">Usuarios con reportes / usuarios activos</div>
+        <div class="note" id="m_usuarios_pct_nota">Usuarios con reportes / activos</div>
         <div class="kpi-progress" id="progress_usuarios_pct" aria-hidden="true"><span></span></div>
       </div>
     </section>
   </section>
 
-  <!-- RECUPERACIÓN Y ÓRDENES -->
+  <!-- RESULTADOS -->
   <section class="dashboard-group">
     <div class="group-heading">
       <div>
-        <span class="section-kicker">RESULTADOS OPERATIVOS</span>
+        <span class="section-kicker">RESULTADOS</span>
         <h2>Recuperación y órdenes SAP</h2>
       </div>
+      <span class="group-caption">Impacto operativo de los reportes</span>
     </div>
     <section class="cards results-row">
       <div class="metric metric-green">
-        <div class="metric-top"><span class="metric-icon">ϟ</span><span class="label">Energía recuperada</span></div>
+        <div class="metric-head"><span class="metric-icon">ϟ</span><span class="label">Energía recuperada (kWh)</span></div>
         <div class="value" id="m_energia">0</div>
-        <div class="note">Total acumulado en kWh</div>
+        <div class="note">Total acumulado</div>
         <div class="kpi-sparkline" id="spark_energia" aria-hidden="true"></div>
       </div>
       <div class="metric metric-blue">
-        <div class="metric-top"><span class="metric-icon">▣</span><span class="label">Reportes con OS SAP</span></div>
+        <div class="metric-head"><span class="metric-icon">▣</span><span class="label">Con orden SAP</span></div>
         <div class="value" id="m_con_os">0</div>
-        <div class="note" id="m_con_os_nota">Reportes con número de orden registrado</div>
+        <div class="note" id="m_con_os_nota">0.0% del total</div>
         <div class="kpi-sparkline" id="spark_os" aria-hidden="true"></div>
       </div>
     </section>
   </section>
 
-  <!-- ESTADO DE ÓRDENES SAP: MISMO PANEL Y ESTILO DE KPI -->
+  <!-- ESTADO DE ÓRDENES SAP -->
   <section class="dashboard-group">
     <div class="group-heading">
       <div>
-        <span class="section-kicker">RESULTADOS OPERATIVOS</span>
-        <h2>Estado de los reportes con OS SAP</h2>
+        <span class="section-kicker">ÓRDENES SAP</span>
+        <h2>Estado de los reportes con OS</h2>
       </div>
-      <span class="group-caption">Conteo por reporte según los filtros aplicados</span>
+      <span class="group-caption">Conteo por reporte</span>
+    </div>
+    <div class="kpi-bar kpi-bar-multi" aria-hidden="true">
+      <span class="kpi-bar-seg seg-gen" id="bar_sap_generada" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-pend" id="bar_sap_pendiente" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-trat" id="bar_sap_tratamiento" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-res" id="bar_sap_resuelta" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-anu" id="bar_sap_anulada" style="width:0%"></span>
     </div>
     <section class="cards status-sap-row">
-      <div class="metric"><div class="metric-top"><span class="metric-icon">▣</span><span class="label">Generada</span></div><div class="value" id="sap_generada">0</div></div>
-      <div class="metric"><div class="metric-top"><span class="metric-icon">◷</span><span class="label">Pendiente de asignar</span></div><div class="value" id="sap_pendiente">0</div></div>
-      <div class="metric"><div class="metric-top"><span class="metric-icon">⚙</span><span class="label">En tratamiento</span></div><div class="value" id="sap_tratamiento">0</div></div>
-      <div class="metric metric-green"><div class="metric-top"><span class="metric-icon">✓</span><span class="label">Resuelta</span></div><div class="value" id="sap_resuelta">0</div></div>
-      <div class="metric metric-amber"><div class="metric-top"><span class="metric-icon">×</span><span class="label">Anulada</span></div><div class="value" id="sap_anulada">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-gen">▣</span><span class="label">Generada</span></div><div class="value" id="sap_generada">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-pend">◷</span><span class="label">Pendiente de asignar</span></div><div class="value" id="sap_pendiente">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-trat">⚙</span><span class="label">En tratamiento</span></div><div class="value" id="sap_tratamiento">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-res">✓</span><span class="label">Resuelta</span></div><div class="value" id="sap_resuelta">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-anu">×</span><span class="label">Anulada</span></div><div class="value" id="sap_anulada">0</div></div>
     </section>
-    <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP, y respeta los filtros aplicados.</div>
+    <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP.</div>
   </section>
 
-  <!-- ESTADO DEL SEGUIMIENTO ADMINISTRATIVO: MISMO PANEL Y ESTILO DE KPI -->
+  <!-- SEGUIMIENTO ADMINISTRATIVO -->
   <section class="dashboard-group">
     <div class="group-heading">
       <div>
         <span class="section-kicker">SEGUIMIENTO</span>
-        <h2>Estado del seguimiento administrativo</h2>
+        <h2>Seguimiento administrativo</h2>
       </div>
-      <span class="group-caption">Conteo independiente del estado de las órdenes SAP</span>
+      <span class="group-caption">Independiente del estado de las órdenes SAP</span>
+    </div>
+    <div class="kpi-bar kpi-bar-multi" aria-hidden="true">
+      <span class="kpi-bar-seg seg-gen" id="bar_seg_sin" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-pend" id="bar_seg_pendiente" style="width:0%"></span>
+      <span class="kpi-bar-seg seg-res" id="bar_seg_resuelto" style="width:0%"></span>
     </div>
     <section class="cards followup-summary status-followup-row">
-      <div class="metric"><div class="metric-top"><span class="metric-icon">○</span><span class="label">Sin seguimiento</span></div><div class="value" id="seg_sin">0</div></div>
-      <div class="metric metric-amber"><div class="metric-top"><span class="metric-icon">◷</span><span class="label">Pendiente</span></div><div class="value" id="seg_pendiente">0</div></div>
-      <div class="metric metric-green"><div class="metric-top"><span class="metric-icon">✓</span><span class="label">Resuelto</span></div><div class="value" id="seg_resuelto">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-gen">○</span><span class="label">Sin seguimiento</span></div><div class="value" id="seg_sin">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-pend">◷</span><span class="label">Pendiente</span></div><div class="value" id="seg_pendiente">0</div></div>
+      <div class="metric"><div class="metric-head"><span class="metric-icon ic-res">✓</span><span class="label">Resuelto</span></div><div class="value" id="seg_resuelto">0</div></div>
     </section>
-    <div class="footer-note">Conteo según los filtros aplicados.</div>
   </section>
 
     </div>
@@ -1512,6 +1645,32 @@ function actualizarChartCondiciones(data) {
   );
 }
 
+function formatoCompactoKPI(v) {
+  const n = Number(v) || 0;
+  const abs = Math.abs(n);
+  if (abs >= 1e6) return (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M";
+  if (abs >= 1e3) return (n / 1e3).toFixed(1).replace(/\.0$/, "") + "k";
+  return abs >= 100 ? String(Math.round(n)) : n.toLocaleString("es", { maximumFractionDigits: 1 });
+}
+
+function etiquetaPeriodoKPI(clave) {
+  // "2026-11-05" -> "05 nov"; "2026-11" -> "nov 2026"
+  const MESES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(clave)) {
+    const [, m, d] = clave.split("-");
+    return `${Number(d)} ${MESES[Number(m) - 1] || ""}`;
+  }
+  if (/^\d{4}-S\d{1,2}$/.test(clave)) {
+    const [a, s] = clave.split("-S");
+    return `S${Number(s)} ${a.slice(2)}`;
+  }
+  if (/^\d{4}-\d{2}$/.test(clave)) {
+    const [a, m] = clave.split("-");
+    return `${MESES[Number(m) - 1] || ""} ${a.slice(2)}`;
+  }
+  return clave;
+}
+
 function crearSparklineKPI(data, selector, obtenerValor, color) {
   const contenedor = document.getElementById(selector);
   if (!contenedor) return;
@@ -1519,24 +1678,44 @@ function crearSparklineKPI(data, selector, obtenerValor, color) {
   const fechas = data.map(r => fechaISO(r.fecha)).filter(Boolean).sort();
   if (!fechas.length) {
     contenedor.innerHTML = '';
+    contenedor.removeAttribute('title');
     return;
   }
 
-  const meses = new Set(fechas.map(f => f.slice(0,7)));
-  const usarMes = meses.size > 1;
+  // Agrupamiento segun la duracion del rango filtrado:
+  // hasta 45 dias -> por dia; hasta 120 dias -> por semana; resto -> por mes.
+  const fechaMin = fechas[0];
+  const fechaMax = fechas[fechas.length - 1];
+  const diasRango = (new Date(fechaMax) - new Date(fechaMin)) / 86400000;
+  const granularidad = diasRango <= 45 ? "dia" : (diasRango <= 120 ? "semana" : "mes");
+
+  function clavePeriodo(fecha) {
+    if (granularidad === "dia") return fecha;
+    if (granularidad === "mes") return fecha.slice(0,7);
+    // Semana ISO: lunes como primer dia
+    const d = new Date(fecha + "T00:00:00");
+    const dia = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - dia);
+    const anio = d.getFullYear();
+    const jueves = new Date(anio, 0, 4);
+    const semana = 1 + Math.round(((d - jueves) / 86400000 - 3 + ((jueves.getDay() + 6) % 7)) / 7);
+    return `${anio}-S${String(semana).padStart(2, "0")}`;
+  }
+
   const grupos = new Map();
   data.forEach(r => {
     const fecha = fechaISO(r.fecha);
     if (!fecha) return;
-    const clave = usarMes ? fecha.slice(0,7) : fecha;
+    const clave = clavePeriodo(fecha);
     if (!grupos.has(clave)) grupos.set(clave, []);
     grupos.get(clave).push(r);
   });
 
-  const puntos = [...grupos.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-8)
-    .map(([clave, filas]) => Number(obtenerValor(filas)) || 0);
-  if (!puntos.length) { contenedor.innerHTML = ''; return; }
+  const serie = [...grupos.entries()].sort((a,b)=>a[0].localeCompare(b[0])).slice(-8)
+    .map(([clave, filas]) => ({ clave, valor: Number(obtenerValor(filas)) || 0 }));
+  if (!serie.length) { contenedor.innerHTML = ''; return; }
 
+  const puntos = serie.map(p => p.valor);
   const max = Math.max(...puntos, 1);
   const min = Math.min(...puntos, 0);
   const rango = max - min || 1;
@@ -1546,11 +1725,30 @@ function crearSparklineKPI(data, selector, obtenerValor, color) {
   }));
   const linea = coords.map((p,i)=>`${i?'L':'M'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
   const area = `${linea} L${coords[coords.length-1].x.toFixed(1)},50 L${coords[0].x.toFixed(1)},50 Z`;
+
+  // Tooltip con el detalle por periodo (los mismos datos que grafica la linea)
+  const detalle = serie
+    .map(p => `${etiquetaPeriodoKPI(p.clave)}: ${p.valor.toLocaleString("es")}`)
+    .join("\n");
+  contenedor.title = detalle;
+
+  // Tendencia: variacion del ultimo periodo frente al anterior
+  const ultimo = puntos[puntos.length - 1];
+  const anterior = puntos.length > 1 ? puntos[puntos.length - 2] : null;
+  let tendencia = "";
+  let claseTendencia = "";
+  if (anterior !== null && anterior !== ultimo) {
+    const variacion = anterior !== 0 ? (ultimo - anterior) / Math.abs(anterior) * 100 : 100;
+    const sube = ultimo > anterior;
+    tendencia = `${sube ? "▲" : "▼"} ${Math.abs(variacion).toFixed(0)}%`;
+    claseTendencia = sube ? "kpi-trend-up" : "kpi-trend-down";
+  }
+
   contenedor.innerHTML = `<svg viewBox="0 0 180 54" preserveAspectRatio="none" focusable="false">
     <path d="${area}" fill="${color}" opacity=".13"></path>
     <path d="${linea}" fill="none" stroke="${color}" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"></path>
-    <circle cx="${coords[coords.length-1].x.toFixed(1)}" cy="${coords[coords.length-1].y.toFixed(1)}" r="3.1" fill="${color}" stroke="#f8fbfd" stroke-width="1.5"></circle>
-  </svg>`;
+    ${coords.map((p, i) => `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${i === coords.length - 1 ? 3.2 : 1.9}" fill="${color}" stroke="#f8fbfd" stroke-width="1.4" pointer-events="all"><title>${etiquetaPeriodoKPI(serie[i].clave)}: ${serie[i].valor.toLocaleString("es")}</title></circle>`).join("")}
+  </svg><span class="kpi-spark-val">${formatoCompactoKPI(ultimo)}</span>${tendencia ? `<span class="kpi-spark-trend ${claseTendencia}">${tendencia}</span>` : ""}`;
 }
 
 function actualizarVisualesKPI(data, usuarios) {
@@ -2678,6 +2876,55 @@ document.addEventListener("change", function(event) {
     }
 
 });
+
+// ===== Barras de distribución del resumen ejecutivo =====
+(function(){
+  const original = actualizarVisualesKPI;
+
+  function pct(part, total) { return total > 0 ? part * 100 / total : 0; }
+  function setBar(id, valor) {
+    const el = document.getElementById(id);
+    if (el) el.style.width = valor.toFixed(2) + "%";
+  }
+
+  function actualizarBarrasKPI(data) {
+    const total = data.length;
+    const trabajados = data.filter(reporteEstaTrabajado).length;
+    setBar("bar_trabajados", pct(trabajados, total));
+    setBar("bar_sin_gestion", pct(total - trabajados, total));
+
+    const estadosSAP = [
+      ["bar_sap_generada", "Generada"],
+      ["bar_sap_pendiente", "Pendiente de asignar"],
+      ["bar_sap_tratamiento", "En tratamiento"],
+      ["bar_sap_resuelta", "Resuelta"],
+      ["bar_sap_anulada", "Anulada"]
+    ];
+    const conOS = data.filter(r => String(r.orden_sap || "").trim()).length;
+    estadosSAP.forEach(([id, estado]) => {
+      const n = data.filter(r =>
+        String(r.orden_sap || "").trim() &&
+        String(r.estado_sap || "").trim() === estado
+      ).length;
+      setBar(id, pct(n, conOS));
+    });
+
+    const estadosSeg = [
+      ["bar_seg_sin", "SIN_SEGUIMIENTO"],
+      ["bar_seg_pendiente", "PENDIENTE"],
+      ["bar_seg_resuelto", "RESUELTO"]
+    ];
+    estadosSeg.forEach(([id, estado]) => {
+      const n = data.filter(r => valorEstadoSeguimiento(r) === estado).length;
+      setBar(id, pct(n, total));
+    });
+  }
+
+  actualizarVisualesKPI = function(data, usuarios) {
+    original(data, usuarios);
+    try { actualizarBarrasKPI(data); } catch (_) {}
+  };
+})();
 
 </script>
 </body>
