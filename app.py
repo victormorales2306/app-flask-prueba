@@ -903,6 +903,61 @@ def api_reportes():
         empresa_usuario = datos_usuario["empresa"]
         sub_empresa_usuario = datos_usuario["sub_empresa"]
 
+        # Asignación de empresa del reporte:
+        # 1) empresa del suscriptor si el medidor existe y tiene empresa;
+        # 2) empresa del usuario en cualquier otro caso.
+        # Comparación tolerante a espacios y mayúsculas/minúsculas.
+
+        cur.execute("""
+            SELECT empresa
+            FROM suscriptores_noviembre_2025
+            WHERE UPPER(BTRIM(serialnumber)) = UPPER(BTRIM(%s))
+        """, (aparato,))
+
+        datos_suscriptores = cur.fetchall()
+
+        empresas_suscriptor = {}
+
+        for dato in datos_suscriptores:
+
+            valor = dato["empresa"]
+
+            if valor is not None:
+
+                valor = str(valor).strip()
+
+                if valor:
+                    empresas_suscriptor.setdefault(valor.upper(), valor)
+
+        # No elegir arbitrariamente si existen empresas diferentes.
+
+        if len(empresas_suscriptor) > 1:
+
+            return jsonify({
+                "status": "error",
+                "error": (
+                    "El medidor tiene empresas diferentes registradas "
+                    "en la tabla de suscriptores. No se pudo determinar "
+                    "la empresa del reporte."
+                )
+            }), 409
+
+        empresa_suscriptor = next(
+            iter(empresas_suscriptor.values()),
+            None
+        )
+
+        # Si el usuario tampoco tiene empresa, guardar NULL.
+
+        if empresa_usuario is not None:
+
+            empresa_usuario = str(empresa_usuario).strip() or None
+
+        if empresa_suscriptor is not None:
+            empresa_definitiva = empresa_suscriptor
+        else:
+            empresa_definitiva = empresa_usuario
+
         # Recibir las fotos nuevas y conservar compatibilidad
         # con el formulario anterior que enviaba una sola foto.
 
@@ -1025,7 +1080,7 @@ def api_reportes():
             fecha or None,
             foto_principal,
             json.dumps(fotos_urls),
-            empresa_usuario,
+            empresa_definitiva,
             sub_empresa_usuario
         ))
 
@@ -1356,6 +1411,101 @@ def guardar_bandera_seguimiento(reporte_id):
 
         return jsonify({
             "error": "No se pudo actualizar la bandera de seguimiento."
+        }), 500
+
+    finally:
+        conn.close()
+
+
+# ---------------- CAMBIO DE PRIORIDAD DEL REPORTE ----------------
+
+@app.route(
+    "/api/reportes/<int:reporte_id>/prioridad",
+    methods=["POST"]
+)
+@admin_required
+def cambiar_prioridad_reporte(reporte_id):
+
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return jsonify({
+            "error": "No se recibieron datos válidos."
+        }), 400
+
+    prioridad = str(
+        data.get("prioridad") or ""
+    ).strip()
+
+    if prioridad not in {"1", "2", "3", "4"}:
+        return jsonify({
+            "error": (
+                "Prioridad inválida. "
+                "Usa 1, 2, 3 o 4."
+            )
+        }), 400
+
+    prioridad = int(prioridad)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT id
+            FROM reportes_medidores
+            WHERE id = %s
+            FOR UPDATE
+        """, (reporte_id,))
+
+        if not cur.fetchone():
+            return jsonify({
+                "error": "Reporte no encontrado."
+            }), 404
+
+        cur.execute("""
+            UPDATE reportes_medidores
+            SET prioridad = %s
+            WHERE id = %s
+        """, (
+            prioridad,
+            reporte_id
+        ))
+
+        cur.execute("""
+            INSERT INTO reportes_medidores_historial
+            (
+                reporte_id,
+                usuario_gestion,
+                accion,
+                comentario,
+                fecha_gestion
+            )
+            VALUES (%s, %s, %s, %s, NOW())
+        """, (
+            reporte_id,
+            session["usuario"],
+            "Cambio de prioridad",
+            f"Prioridad cambiada a {prioridad}"
+        ))
+
+        conn.commit()
+
+        return jsonify({
+            "status": "ok",
+            "mensaje": "Prioridad actualizada correctamente",
+            "prioridad": prioridad
+        })
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print("ERROR CAMBIANDO PRIORIDAD:", e)
+
+        return jsonify({
+            "error": "No se pudo actualizar la prioridad."
         }), 500
 
     finally:
@@ -1784,21 +1934,24 @@ def cargar_suscriptores():
                     latitude DOUBLE PRECISION,
                     longitude DOUBLE PRECISION,
                     mru TEXT,
-                    mr_time TIME
-                ) ON COMMIT DROP;
-            """)
+                    mr_time TIME,
+                    mrcenter TEXT
+                        ) ON COMMIT DROP;
+                """)    
 
             # 2. Cargar datos masivamente.
             with open(temp_path, "r") as f:
 
                 cur.copy_expert("""
                     COPY temp_suscriptores(
-                        serialnumber,
-                        latitude,
-                        longitude,
-                        mru,
-                        mr_time
-                    )
+                      serialnumber,
+                       latitude,
+                       longitude,
+                       mru,
+                       mr_time,
+                       mrcenter
+                       )
+                      
                     FROM STDIN WITH CSV HEADER
                 """, f)
 
@@ -1817,19 +1970,29 @@ def cargar_suscriptores():
 
             cur.execute("""
                 INSERT INTO suscriptores_noviembre_2025 (
-                    serialnumber,
-                    latitude,
-                    longitude,
-                    mru,
-                    mr_time
-                )
-                SELECT
-                    serialnumber,
-                    latitude,
-                    longitude,
-                    mru,
-                    mr_time
-                FROM temp_suscriptores;
+    serialnumber,
+    latitude,
+    longitude,
+    mru,
+    mr_time,
+    mrcenter,
+    empresa
+)
+SELECT
+    serialnumber,
+    latitude,
+    longitude,
+    mru,
+    mr_time,
+    mrcenter,
+    CASE LEFT(BTRIM(mrcenter), 1)
+        WHEN '2' THEN 'CAESS'
+        WHEN '5' THEN 'CLESA'
+        WHEN '3' THEN 'EEO'
+        WHEN '4' THEN 'DEUSEM'
+        ELSE NULL
+    END
+FROM temp_suscriptores;
             """)
 
             conn.commit()
@@ -2528,4 +2691,4 @@ def confirmar_revision(id_lote):
 # ---------------- RUN ----------------
 
 if __name__ == "__main__":
-    app.run(debug=True)        
+    app.run(debug=True)

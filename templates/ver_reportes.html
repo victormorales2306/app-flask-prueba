@@ -763,6 +763,16 @@ main { background:transparent !important; }
   .kpi-master-body .metric .value { font-size:25px !important; }
   .kpi-bar { height:10px; }
 }
+
+/* Selector de prioridad en la tabla (solo admin) */
+.prioridad-select {
+  padding:5px 6px; border:1px solid #cbd8e4; border-radius:7px;
+  font:inherit; font-size:12px; font-weight:700; background:#fff; cursor:pointer;
+}
+.prioridad-select-1 { background:#fee2e2; color:#991b1b; border-color:#f3b4b4; }
+.prioridad-select-2 { background:#ffedd5; color:#9a3412; border-color:#f0c79f; }
+.prioridad-select-3 { background:#fef3c7; color:#92400e; border-color:#ecd98f; }
+.prioridad-select-4 { background:#dcfce7; color:#166534; border-color:#b3e6c4; }
 </style>
 </head>
 
@@ -2262,9 +2272,21 @@ function actualizarTabla(data) {
         </td>
 
         <td>
-          <span class="pill priority-${textoSeguro(prioridad)}">
-            ${textoSeguro(prioridadTexto(r.prioridad))}
-          </span>
+          ${
+            esAdmin
+              ? `<select id="prioridad_sel_${textoSeguro(r.id)}"
+                        class="prioridad-select prioridad-select-${textoSeguro(prioridad)}"
+                        data-valor-anterior="${textoSeguro(prioridad)}"
+                        aria-label="Prioridad del reporte ${textoSeguro(r.id)}">
+                  <option value="1" ${prioridad === "1" ? "selected" : ""}>1 — Urgente</option>
+                  <option value="2" ${prioridad === "2" ? "selected" : ""}>2 — Alta</option>
+                  <option value="3" ${prioridad === "3" ? "selected" : ""}>3 — Media</option>
+                  <option value="4" ${prioridad === "4" ? "selected" : ""}>4 — Puede esperar</option>
+                </select>`
+              : `<span class="pill priority-${textoSeguro(prioridad)}">
+                  ${textoSeguro(prioridadTexto(r.prioridad))}
+                </span>`
+          }
         </td>
 
         ${celda(r.comentario)}
@@ -2845,6 +2867,71 @@ mostrarMensaje(
 }
 
 
+async function guardarPrioridad(id) {
+
+    const control = document.getElementById(`prioridad_sel_${id}`);
+
+    if (!control) {
+        alert("No se encontró el control de prioridad.");
+        return;
+    }
+
+    const valorAnterior = control.dataset.valorAnterior || "";
+
+    try {
+
+        const respuesta = await fetch(
+            `/api/reportes/${id}/prioridad`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    prioridad: control.value
+                })
+            }
+        );
+
+        const resultado = await respuesta.json();
+
+        if (!respuesta.ok) {
+            throw new Error(resultado.error || "No se pudo actualizar la prioridad.");
+        }
+
+        const reporte = reportes.find(r => Number(r.id) === Number(id));
+
+        if (reporte) {
+            reporte.prioridad = Number(control.value);
+        }
+
+        // Actualizar el color del selector y recordar el valor guardado.
+        control.classList.remove(
+            "prioridad-select-1",
+            "prioridad-select-2",
+            "prioridad-select-3",
+            "prioridad-select-4"
+        );
+        control.classList.add(`prioridad-select-${control.value}`);
+        control.dataset.valorAnterior = control.value;
+
+        aplicarFiltrosLocales();
+
+        mostrarMensaje("Prioridad actualizada correctamente.");
+
+    } catch (error) {
+
+        // Restaurar el valor guardado si el cambio falló.
+        if (valorAnterior) {
+            control.value = valorAnterior;
+        }
+
+        alert("Error al cambiar la prioridad: " + error.message);
+
+    }
+}
+
+
 // =====================================================
 // CONECTAR LOS CONTROLES EXISTENTES
 // =====================================================
@@ -2873,6 +2960,13 @@ document.addEventListener("change", function(event) {
 
     if (coincidencia) {
         guardarBandera(coincidencia[1]);
+        return;
+    }
+
+    coincidencia = idControl.match(/^prioridad_sel_(\d+)$/);
+
+    if (coincidencia) {
+        guardarPrioridad(coincidencia[1]);
     }
 
 });
