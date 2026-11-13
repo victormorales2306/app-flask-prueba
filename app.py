@@ -831,6 +831,119 @@ def total_usuarios_reportes():
 
     finally:
         conn.close()
+# ---------------- AREAS DE USUARIOS ----------------
+
+@app.route("/api/reportes/usuarios_areas", methods=["GET"])
+@usuario_required
+def usuarios_areas():
+
+    """
+    Devuelve la relacion usuario -> area desde usuarios_sistema.
+    La usa el grafico de reportes por area de ver_reportes.html.
+    """
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        cur.execute("""
+            SELECT
+                usuario,
+                area,
+                empresa,
+                sub_empresa
+            FROM usuarios_sistema
+            WHERE estado = 'activo'
+              AND rol <> 'admin'
+            ORDER BY usuario
+        """)
+
+        filas = cur.fetchall()
+
+        return jsonify([
+            {
+                "usuario": fila["usuario"],
+                "area": fila["area"] or "",
+                "empresa": fila["empresa"] or "",
+                "sub_empresa": fila["sub_empresa"] or ""
+            }
+            for fila in filas
+        ])
+
+    except Exception as e:
+
+        print("ERROR CONSULTANDO AREAS DE USUARIOS:", e)
+
+        return jsonify({
+            "error": "No se pudieron consultar las áreas de los usuarios."
+        }), 500
+
+    finally:
+        conn.close()
+
+# ---------------- CASOS ATENDIDOS POR ANALISTA ----------------
+
+# Usuarios excluidos del conteo de analistas (Administrador y
+# desarrollador: sus cambios son ajustes tecnicos, no atencion
+# de casos). Si el ultimo toque de un reporte fue de un excluido,
+# se atribuye al analista anterior, y asi sucesivamente.
+USUARIOS_EXCLUIDOS_ANALISTAS = {"MORALESV00C"}
+
+
+@app.route("/api/reportes/gestiones_por_analista", methods=["GET"])
+@usuario_required
+def gestiones_por_analista():
+
+    """
+    Cantidad de casos atendidos por analista, segun el historial
+    de gestiones (reportes_medidores_historial). Por cada reporte
+    se toma el ultimo usuario de gestion que no este excluido;
+    asi, si el ultimo toque fue de un administrador excluido,
+    el caso se atribuye al analista anterior.
+    La usa el grafico de casos atendidos por analista.
+    """
+
+    excluidos = list(USUARIOS_EXCLUIDOS_ANALISTAS)
+
+    conn = get_db()
+    cur = conn.cursor()
+
+    try:
+
+        # DISTINCT ON (PostgreSQL): ultima gestion de cada reporte
+        # cuyo usuario no este excluido.
+        cur.execute("""
+            SELECT
+                analista,
+                COUNT(*) AS casos
+            FROM (
+                SELECT DISTINCT ON (reporte_id)
+                    reporte_id,
+                    usuario_gestion AS analista
+                FROM reportes_medidores_historial
+                WHERE usuario_gestion IS NOT NULL
+                  AND usuario_gestion <> ALL(%s)
+                ORDER BY reporte_id, fecha_gestion DESC, id DESC
+            ) ultima_gestion
+            WHERE analista <> ''
+            GROUP BY analista
+            ORDER BY casos DESC
+        """, (excluidos,))
+
+        return jsonify(cur.fetchall())
+
+    except Exception as e:
+
+        print("ERROR CONSULTANDO GESTIONES POR ANALISTA:", e)
+
+        return jsonify({
+            "error": "No se pudieron consultar las gestiones por analista."
+        }), 500
+
+    finally:
+        conn.close()
+
 # ---------------- GUARDAR REPORTE ----------------
 
 @app.route("/api/reportes", methods=["POST"])

@@ -371,6 +371,29 @@ header p { color:#c7d9e7; }
 }
 .chart-box .field label { color:#183c5e; font-size:12px; font-weight:700; }
 .chart-box canvas { max-height:250px; }
+
+/* El grafico de tecnicos ocupa el alto de dos filas de la cuadricula */
+.chart-box-usuarios {
+  grid-row: span 2;
+  display:flex;
+  flex-direction:column;
+  min-height:0;
+  overflow:hidden;
+}
+.chart-box-usuarios .field { flex:0 0 auto; }
+.chart-scroll {
+  /* No aporta su contenido al tamano de la fila:
+     se ajusta al alto que marcan los demas graficos
+     y el desborde se resuelve con scroll interno. */
+  flex:1 1 0;
+  min-height:0;
+  height:auto;
+  overflow-y:auto;
+  overflow-x:hidden;
+  padding-right:4px;
+}
+.chart-scroll-inner { position:relative; }
+.chart-scroll canvas { max-height:none; }
 .map-toolbar { background:#344352; border-bottom:1px solid #4b5c6d; }
 .map-hint { color:#c2cfda; }
 .map-wrap { height:560px; }
@@ -844,9 +867,9 @@ main { background:transparent !important; }
         </div>
 
         <div class="field">
-          <label for="f_subempresa">Subempresa</label>
+          <label for="f_subempresa">Contratista</label>
           <select id="f_subempresa">
-            <option value="">Todas las subempresas</option>
+            <option value="">Todos los contratistas</option>
           </select>
         </div>
 
@@ -994,62 +1017,19 @@ main { background:transparent !important; }
     </section>
   </section>
 
-  <!-- ESTADO DE ÓRDENES SAP -->
-  <section class="dashboard-group">
-    <div class="group-heading">
-      <div>
-        <span class="section-kicker">ÓRDENES SAP</span>
-        <h2>Estado de los reportes con OS</h2>
-      </div>
-      <span class="group-caption">Conteo por reporte</span>
-    </div>
-    <div class="kpi-bar kpi-bar-multi" aria-hidden="true">
-      <span class="kpi-bar-seg seg-gen" id="bar_sap_generada" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-pend" id="bar_sap_pendiente" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-trat" id="bar_sap_tratamiento" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-res" id="bar_sap_resuelta" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-anu" id="bar_sap_anulada" style="width:0%"></span>
-    </div>
-    <section class="cards status-sap-row">
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-gen">▣</span><span class="label">Generada</span></div><div class="value" id="sap_generada">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-pend">◷</span><span class="label">Pendiente de asignar</span></div><div class="value" id="sap_pendiente">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-trat">⚙</span><span class="label">En tratamiento</span></div><div class="value" id="sap_tratamiento">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-res">✓</span><span class="label">Resuelta</span></div><div class="value" id="sap_resuelta">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-anu">×</span><span class="label">Anulada</span></div><div class="value" id="sap_anulada">0</div></div>
-    </section>
-    <div class="footer-note">El conteo se realiza por reporte, no por número único de orden SAP.</div>
-  </section>
-
-  <!-- SEGUIMIENTO ADMINISTRATIVO -->
-  <section class="dashboard-group">
-    <div class="group-heading">
-      <div>
-        <span class="section-kicker">SEGUIMIENTO</span>
-        <h2>Seguimiento administrativo</h2>
-      </div>
-      <span class="group-caption">Independiente del estado de las órdenes SAP</span>
-    </div>
-    <div class="kpi-bar kpi-bar-multi" aria-hidden="true">
-      <span class="kpi-bar-seg seg-gen" id="bar_seg_sin" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-pend" id="bar_seg_pendiente" style="width:0%"></span>
-      <span class="kpi-bar-seg seg-res" id="bar_seg_resuelto" style="width:0%"></span>
-    </div>
-    <section class="cards followup-summary status-followup-row">
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-gen">○</span><span class="label">Sin seguimiento</span></div><div class="value" id="seg_sin">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-pend">◷</span><span class="label">Pendiente</span></div><div class="value" id="seg_pendiente">0</div></div>
-      <div class="metric"><div class="metric-head"><span class="metric-icon ic-res">✓</span><span class="label">Resuelto</span></div><div class="value" id="seg_resuelto">0</div></div>
-    </section>
-  </section>
-
     </div>
   </section>
 
   <section class="panel">
     <div class="panel-title">Resumen estadístico de los reportes filtrados</div>
     <div class="panel-body charts">
-      <div class="chart-box">
-        <div class="field"><label>Top 10 técnicos por cantidad de reportes</label></div>
-        <canvas id="chartUsuarios"></canvas>
+      <div class="chart-box chart-box-usuarios">
+        <div class="field"><label>Reportes por técnico · meta mínima: <span id="metaTexto">2</span> reportes</label></div>
+        <div class="chart-scroll">
+          <div class="chart-scroll-inner">
+            <canvas id="chartUsuarios"></canvas>
+          </div>
+        </div>
       </div>
 
       <div class="chart-box">
@@ -1058,13 +1038,28 @@ main { background:transparent !important; }
       </div>
 
       <div class="chart-box">
+        <div class="field"><label>Casos efectivos por condición</label></div>
+        <canvas id="chartEfectivosCondicion"></canvas>
+      </div>
+
+      <div class="chart-box">
         <div class="field"><label>Reportes por prioridad</label></div>
         <canvas id="chartPrioridades"></canvas>
       </div>
 
       <div class="chart-box">
-        <div class="field"><label>Reportes por subempresa</label></div>
+        <div class="field"><label>Reportes por contratista</label></div>
         <canvas id="chartSubempresas"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="field"><label>Reportes por área</label></div>
+        <canvas id="chartAreas"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="field"><label>Casos atendidos por analista</label></div>
+        <canvas id="chartAnalistas"></canvas>
       </div>
     </div>
   </section>
@@ -1305,13 +1300,26 @@ function urlConFiltros(base) {
   return base + (p.toString() ? "?" + p.toString() : "");
 }
 
+function obtenerCatalogoUsuarios() {
+  if (!mapaAreasPorUsuario || !mapaAreasPorUsuario.size) return [];
+
+  return [...mapaAreasPorUsuario.entries()].map(([usuario, info]) => ({
+    usuario,
+    area: info.area || "",
+    empresa: info.empresa || "",
+    sub_empresa: info.sub_empresa || ""
+  }));
+}
+
 function poblarUsuarios(data) {
   const select = document.getElementById("f_usuario");
   const seleccionado = select.value;
+  const catalogo = obtenerCatalogoUsuarios();
 
-  const usuarios = [...new Set(
-    data.map(r => String(r.usuario || "").trim()).filter(Boolean)
-  )].sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
+  const usuarios = [...new Set([
+    ...catalogo.map(u => String(u.usuario || "").trim()),
+    ...data.map(r => String(r.usuario || "").trim())
+  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es",{numeric:true}));
 
   select.innerHTML =
     '<option value="">Todos los usuarios</option>' +
@@ -1327,10 +1335,12 @@ function poblarUsuarios(data) {
 function poblarEmpresas(data) {
   const select = document.getElementById("f_empresa");
   const seleccionado = select.value;
+  const catalogo = obtenerCatalogoUsuarios();
 
-  const empresas = [...new Set(
-    data.map(r => String(r.empresa || "").trim()).filter(Boolean)
-  )].sort((a,b)=>a.localeCompare(b,"es"));
+  const empresas = [...new Set([
+    ...catalogo.map(u => String(u.empresa || "").trim()),
+    ...data.map(r => String(r.empresa || "").trim())
+  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
 
   select.innerHTML =
     '<option value="">Todas las empresas</option>' +
@@ -1349,17 +1359,22 @@ function poblarSubempresas(data) {
   const select = document.getElementById("f_subempresa");
   const empresa = document.getElementById("f_empresa").value;
   const seleccionado = select.value;
+  const catalogo = obtenerCatalogoUsuarios();
 
-  const registros = empresa
+  const catalogoFiltrado = empresa
+    ? catalogo.filter(u => String(u.empresa || "").trim() === empresa)
+    : catalogo;
+  const reportesFiltrados = empresa
     ? data.filter(r => String(r.empresa || "").trim() === empresa)
     : data;
 
-  const subempresas = [...new Set(
-    registros.map(r => String(r.sub_empresa || "").trim()).filter(Boolean)
-  )].sort((a,b)=>a.localeCompare(b,"es"));
+  const subempresas = [...new Set([
+    ...catalogoFiltrado.map(u => String(u.sub_empresa || "").trim()),
+    ...reportesFiltrados.map(r => String(r.sub_empresa || "").trim())
+  ].filter(Boolean))].sort((a,b)=>a.localeCompare(b,"es"));
 
   select.innerHTML =
-    '<option value="">Todas las subempresas</option>' +
+    '<option value="">Todos los contratistas</option>' +
     subempresas.map(s =>
       `<option value="${textoSeguro(s)}">${textoSeguro(s)}</option>`
     ).join("");
@@ -1885,64 +1900,14 @@ function actualizarResumen(data) {
       "No se pudo consultar el total de usuarios activos";
   }
 
-  // Estados de órdenes SAP
-  const estados = [
-    ["sap_generada", "Generada"],
-    ["sap_pendiente", "Pendiente de asignar"],
-    ["sap_tratamiento", "En tratamiento"],
-    ["sap_resuelta", "Resuelta"],
-    ["sap_anulada", "Anulada"]
-  ];
-
-  estados.forEach(([id, estado]) => {
-    const n = data.filter(r =>
-      String(r.orden_sap || "").trim() &&
-      String(r.estado_sap || "").trim() === estado
-    ).length;
-
-    document.getElementById(id).textContent =
-      n.toLocaleString("es");
-  });
-
-  // Bandera de seguimiento
-  const sinSeguimiento = data.filter(r =>
-    valorEstadoSeguimiento(r) === "SIN_SEGUIMIENTO"
-  ).length;
-
-  const pendientes = data.filter(r =>
-    valorEstadoSeguimiento(r) === "PENDIENTE"
-  ).length;
-
-  const resueltos = data.filter(r =>
-    valorEstadoSeguimiento(r) === "RESUELTO"
-  ).length;
-
-  document.getElementById("seg_sin").textContent =
-    sinSeguimiento.toLocaleString("es");
-
-  document.getElementById("seg_pendiente").textContent =
-    pendientes.toLocaleString("es");
-
-  document.getElementById("seg_resuelto").textContent =
-    resueltos.toLocaleString("es");
-
-  // Gráfico de los 10 técnicos con más reportes
-  const resumenUsuarios = contarPor(
-    data,
-    "usuario",
-    v => v || "Sin usuario"
-  ).slice(0,10);
-
-  actualizarChart(
-    "chartUsuarios",
-    "bar",
-    resumenUsuarios.map(x=>x[0]),
-    resumenUsuarios.map(x=>x[1]),
-    true
-  );
+  // Gráfico de reportes por técnico (todos los usuarios, con meta)
+  actualizarChartUsuarios(data);
 
   // Gráfico de condiciones
   actualizarChartCondiciones(data);
+
+  // Gráfico de casos efectivos por condición
+  actualizarChartEfectivosCondicion(data);
 
   // Gráfico de prioridades
   const prioridades = ["1","2","3","4"].map(p => [
@@ -1959,11 +1924,101 @@ function actualizarResumen(data) {
     true
   );
 
+  // Gráfico de casos efectivos por condición
+  function actualizarChartEfectivosCondicion(data) {
+    if (charts.chartEfectivosCondicion) {
+      charts.chartEfectivosCondicion.destroy();
+    }
+
+    // Mismo orden que el grafico de condiciones:
+    // por cantidad de reportes, de mayor a menor.
+    const resumenTotales = contarPor(
+      data,
+      "condicion",
+      v => String(v || "").trim() || "Sin condición"
+    );
+
+    const efectivos = data.filter(r => valorEfectividad(r) === "true");
+
+    const labels = resumenTotales.map(x => condicionTexto(x[0]));
+    const cantidades = resumenTotales.map(([condicion]) =>
+      efectivos.filter(r =>
+        (String(r.condicion || "").trim() || "Sin condición") === condicion
+      ).length
+    );
+    const totalesPorCondicion = resumenTotales.map(x => x[1]);
+    const efectividadPct = cantidades.map((n,i) =>
+      totalesPorCondicion[i] ? Number((n*100/totalesPorCondicion[i]).toFixed(1)) : 0
+    );
+
+    charts.chartEfectivosCondicion = new Chart(
+      document.getElementById("chartEfectivosCondicion"),
+      {
+        type:"bar",
+        plugins:[pluginEtiquetasDatos],
+        data:{
+          labels,
+          datasets:[
+            {
+              type:"bar",
+              label:"Casos efectivos",
+              data:cantidades,
+              yAxisID:"y",
+              backgroundColor:"rgba(31,111,170,.78)",
+              borderColor:"#1f6faa",
+              borderRadius:5,
+              borderSkipped:false,
+              maxBarThickness:34,
+              borderWidth:1
+            },
+            {
+              type:"line",
+              label:"Efectividad (%)",
+              data:efectividadPct,
+              yAxisID:"y1",
+              borderColor:"#d49a32",
+              backgroundColor:"rgba(212,154,50,.12)",
+              borderWidth:2.5,
+              tension:.38,
+              pointRadius:3,
+              pointHoverRadius:5,
+              pointBackgroundColor:"#fff",
+              pointBorderColor:"#d49a32",
+              fill:false
+            }
+          ]
+        },
+        options:{
+          responsive:true,
+          maintainAspectRatio:false,
+          interaction:{ mode:"index", intersect:false },
+          scales:{
+            y:{
+              beginAtZero:true,
+              ticks:{ precision:0 },
+              title:{ display:true, text:"Casos efectivos" },
+              grid:{ color:"rgba(15,40,70,.07)" }
+            },
+            y1:{
+              beginAtZero:true,
+              position:"right",
+              max:100,
+              ticks:{ callback:v=>v+"%" },
+              title:{ display:true, text:"Efectividad" },
+              grid:{ drawOnChartArea:false }
+            },
+            x:{ grid:{ display:false } }
+          }
+        }
+      }
+    );
+  }
+
   // Gráfico de subempresas
   const resumenSubempresas = contarPor(
     data,
     "sub_empresa",
-    v => String(v || "").trim() || "Sin subempresa"
+    v => String(v || "").trim() || "Sin contratista"
   );
 
   actualizarChart(
@@ -1974,7 +2029,413 @@ function actualizarResumen(data) {
     true
   );
 
+  // Gráfico de reportes por área (usa el área de cada usuario)
+  actualizarChartAreas(data);
+
+  // Gráfico de casos atendidos por analista
+  actualizarChartAnalistas();
+
   actualizarVisualesKPI(data, usuarios);
+}
+
+/*
+ * Gráfico de reportes por técnico:
+ * - Muestra TODOS los usuarios activos (incluye los que no hacen reportes).
+ * - Es deslizable verticalmente.
+ * - Meta mínima: 2 reportes. Quien no la cumple aparece en rojo.
+ */
+/*
+ * Meta de reportes según el rango de fechas filtrado:
+ * 2 reportes por semana, redondeando a la semana más cercana.
+ * Ejemplos:
+ * - 7 días o menos -> meta 2
+ * - 12 días        -> meta 4 (casi 2 semanas)
+ * - 14 días        -> meta 4
+ * - 30 días        -> meta 8 (4 semanas)
+ * Sin fechas o rango inválido -> meta semanal (2).
+ */
+let metaReportesActual = 2;
+
+function calcularMetaReportes() {
+  const inicio = document.getElementById("f_inicio").value;
+  const fin = document.getElementById("f_fin").value;
+
+  metaReportesActual = 2;
+
+  if (inicio && fin) {
+    const dias = Math.floor(
+      (new Date(fin) - new Date(inicio)) / 86400000
+    ) + 1;
+
+    if (dias > 0) {
+      const semanas = Math.round(dias / 7);
+      metaReportesActual = Math.max(2, semanas * 2);
+    }
+  }
+
+  const texto = document.getElementById("metaTexto");
+  if (texto) texto.textContent = metaReportesActual;
+
+  return metaReportesActual;
+}
+
+const pluginLineaMeta = {
+  id: "lineaMeta",
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea, scales } = chart;
+    const escalaX = scales.x;
+    const meta = metaReportesActual;
+    if (!escalaX || meta > escalaX.max) return;
+
+    const x = escalaX.getPixelForValue(meta);
+
+    if (x < chartArea.left || x > chartArea.right) return;
+
+    ctx.save();
+    ctx.strokeStyle = "#d97706";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, chartArea.top);
+    ctx.lineTo(x, chartArea.bottom);
+    ctx.stroke();
+
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#d97706";
+    ctx.font = "bold 10px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("Meta: " + meta, x, chartArea.top - 4);
+    ctx.restore();
+  }
+};
+
+async function actualizarChartUsuarios(data) {
+  if (charts.chartUsuarios) {
+    charts.chartUsuarios.destroy();
+  }
+
+  // Recalcular la meta segun el rango de fechas filtrado.
+  calcularMetaReportes();
+
+  // Todos los usuarios activos (vienen del endpoint de áreas),
+  // respetando los filtros de empresa y contratista: si hay
+  // empresa filtrada, solo se siembran los usuarios de esa
+  // empresa (los demas tecnicos no aplican a la vista).
+  // Si el endpoint no está disponible, se usan solo los que tienen reportes.
+  const areas = await obtenerAreasPorUsuario();
+
+  const f = filtrosActuales();
+
+  // Comparacion tolerante: mayusculas y espacios normalizados.
+  const normalizar = v => String(v || "").trim().toUpperCase();
+
+  // Empresas conocidas de cada usuario segun TODOS los reportes
+  // (no solo los filtrados). Sirve de respaldo cuando el endpoint
+  // de areas no trae el campo empresa o el registro esta vacio.
+  const empresasPorReportes = new Map();
+  reportes.forEach(r => {
+    const usuario = String(r.usuario || "").trim();
+    const empresa = normalizar(r.empresa);
+    if (!usuario || !empresa) return;
+    if (!empresasPorReportes.has(usuario)) {
+      empresasPorReportes.set(usuario, new Set());
+    }
+    empresasPorReportes.get(usuario).add(empresa);
+  });
+
+  const conteo = new Map();
+
+  if (areas && areas.size) {
+    areas.forEach((info, usuario) => {
+      if (f.empresa) {
+        const empresaObjetivo = normalizar(f.empresa);
+        const empresaRegistrada = normalizar(info.empresa);
+        const empresasReportadas = empresasPorReportes.get(usuario) || new Set();
+
+        // Si el catálogo tiene empresa asignada, prevalece la asignación
+        // vigente. Solo se consulta el histórico como respaldo cuando
+        // el campo empresa del usuario está vacío.
+        if (empresaRegistrada) {
+          if (empresaRegistrada !== empresaObjetivo) return;
+        } else if (!empresasReportadas.has(empresaObjetivo)) {
+          return;
+        }
+      }
+      if (f.sub_empresa) {
+        const subempresaRegistrada = normalizar(info.sub_empresa);
+
+        // Si el catálogo no tiene contratista, se permite usar el dato
+        // histórico del reporte como respaldo para ese usuario.
+        if (subempresaRegistrada) {
+          if (subempresaRegistrada !== normalizar(f.sub_empresa)) return;
+        } else {
+          const tieneReporteContratista = reportes.some(r =>
+            String(r.usuario || "").trim() === usuario &&
+            normalizar(r.sub_empresa) === normalizar(f.sub_empresa) &&
+            (!f.empresa || normalizar(r.empresa) === normalizar(f.empresa))
+          );
+          if (!tieneReporteContratista) return;
+        }
+      }
+      conteo.set(usuario, 0);
+    });
+  }
+
+  data.forEach(r => {
+    const usuario = String(r.usuario || "").trim();
+    if (!usuario) return;
+    conteo.set(usuario, (conteo.get(usuario) || 0) + 1);
+  });
+
+  const filas = [...conteo.entries()].sort((a,b) => b[1] - a[1]);
+
+  // Altura del lienzo segun la cantidad de usuarios:
+  // cada barra conserva un tamaño legible y el contenedor
+  // exterior se encarga del desplazamiento vertical.
+  const canvasUsuarios = document.getElementById("chartUsuarios");
+  const contenedorInterno = canvasUsuarios.parentElement;
+  contenedorInterno.style.height =
+    Math.max(400, filas.length * 26 + 60) + "px";
+
+  const labels = filas.map(x => x[0]);
+  const valores = filas.map(x => x[1]);
+  const colores = filas.map(x =>
+    x[1] >= metaReportesActual ? "rgba(31,111,170,.78)" : "rgba(220,38,38,.82)"
+  );
+  const bordes = filas.map(x => (x[1] >= metaReportesActual ? "#1f6faa" : "#b91c1c"));
+
+  charts.chartUsuarios = new Chart(
+    document.getElementById("chartUsuarios"),
+    {
+      type:"bar",
+      plugins:[pluginLineaMeta],
+      data:{
+        labels,
+        datasets:[{
+          label:"Reportes",
+          data:valores,
+          backgroundColor:colores,
+          borderColor:bordes,
+          borderWidth:1,
+          borderRadius:5,
+          borderSkipped:false,
+          maxBarThickness:22
+        }]
+      },
+      options:{
+        indexAxis:"y",
+        responsive:true,
+        maintainAspectRatio:false,
+        layout:{padding:{top:16,right:14,left:4,bottom:2}},
+        plugins:{
+          legend:{display:false},
+          tooltip:{
+            backgroundColor:"#102b45", titleColor:"#fff", bodyColor:"#e7f0f7",
+            padding:11, cornerRadius:8, displayColors:false,
+            callbacks:{
+              label(context) {
+                const n = context.parsed.x;
+                return `${n} reporte${n === 1 ? "" : "s"} · ` +
+                  (n >= metaReportesActual ? "cumple la meta" : "NO cumple la meta");
+              }
+            }
+          }
+        },
+        scales:{
+          x:{
+            beginAtZero:true,
+            ticks:{ precision:0, color:"#60758a", font:{size:10} },
+            grid:{ color:"rgba(120,145,166,.16)", drawBorder:false },
+            border:{ display:false },
+            suggestedMax: metaReportesActual + 1
+          },
+          y:{
+            ticks:{ color:"#33475c", font:{size:11}, autoSkip:false },
+            grid:{ display:false },
+            border:{ display:false }
+          }
+        }
+      }
+    }
+  );
+}
+
+/*
+ * Casos atendidos por analista. Consulta una sola vez el endpoint
+ * /api/reportes/gestiones_por_analista, que agrega el historial
+ * de gestiones (reportes_medidores_historial) por usuario_gestion.
+ * Formato esperado: [{"analista":"ABC0001","casos":12}, ...]
+ */
+let gestionesPorAnalista = null;
+let cargaAnalistasEnCurso = null;
+
+async function obtenerGestionesPorAnalista() {
+  if (gestionesPorAnalista !== null) return gestionesPorAnalista;
+
+  if (!cargaAnalistasEnCurso) {
+    cargaAnalistasEnCurso = (async () => {
+      try {
+        const response = await fetch("/api/reportes/gestiones_por_analista");
+
+        if (!response.ok) throw new Error("Respuesta no válida del servidor.");
+
+        const datos = await response.json();
+        const mapa = new Map();
+
+        if (Array.isArray(datos)) {
+          datos.forEach(f => {
+            const analista = String(f.analista || f.usuario_gestion || "").trim();
+            const casos = Number(f.casos);
+            if (analista && Number.isFinite(casos)) {
+              mapa.set(analista, casos);
+            }
+          });
+        }
+
+        gestionesPorAnalista = mapa;
+      } catch (error) {
+        console.error("Error consultando gestiones por analista:", error);
+        gestionesPorAnalista = new Map();
+      } finally {
+        cargaAnalistasEnCurso = null;
+      }
+      return gestionesPorAnalista;
+    })();
+  }
+
+  return cargaAnalistasEnCurso;
+}
+
+async function actualizarChartAnalistas() {
+  if (charts.chartAnalistas) {
+    charts.chartAnalistas.destroy();
+  }
+
+  const gestiones = await obtenerGestionesPorAnalista();
+
+  const filas = [...gestiones.entries()].sort((a,b) => b[1] - a[1]);
+
+  charts.chartAnalistas = new Chart(
+    document.getElementById("chartAnalistas"),
+    {
+      type:"bar",
+      plugins:[pluginEtiquetasDatos],
+      data:{
+        labels:filas.map(x=>x[0]),
+        datasets:[{
+          label:"Casos atendidos",
+          data:filas.map(x=>x[1]),
+          backgroundColor:"rgba(31,111,170,.78)",
+          borderColor:"#1f6faa",
+          borderWidth:1,
+          borderRadius:5,
+          borderSkipped:false,
+          maxBarThickness:34
+        }]
+      },
+      options:{
+        indexAxis:"y",
+        responsive:true,
+        maintainAspectRatio:true,
+        layout:{padding:{top:18,right:8,left:4,bottom:2}},
+        plugins:{ legend:{display:false} },
+        scales:{
+          x:{
+            beginAtZero:true,
+            ticks:{ precision:0, color:"#60758a", font:{size:10} },
+            grid:{ color:"rgba(120,145,166,.16)", drawBorder:false },
+            border:{ display:false }
+          },
+          y:{
+            ticks:{ color:"#33475c", font:{size:10} },
+            grid:{ display:false },
+            border:{ display:false }
+          }
+        }
+      }
+    }
+  );
+}
+
+/*
+ * Mapa usuario -> {area, empresa}. Se consulta una sola vez al
+ * endpoint /api/reportes/usuarios_areas, que devuelve la relacion
+ * entre usuarios, su area y su empresa desde usuarios_sistema.
+ * Formatos aceptados: [{"usuario":"u1","area":"A","empresa":"E"}, ...]
+ * o {"u1": {"area":"A","empresa":"E"}, ...}
+ */
+let mapaAreasPorUsuario = null;
+let cargaAreasEnCurso = null;
+
+async function obtenerAreasPorUsuario() {
+  if (mapaAreasPorUsuario !== null) return mapaAreasPorUsuario;
+
+  if (!cargaAreasEnCurso) {
+    cargaAreasEnCurso = (async () => {
+      try {
+        const response = await fetch("/api/reportes/usuarios_areas");
+
+        if (!response.ok) throw new Error("Respuesta no válida del servidor.");
+
+        const data = await response.json();
+        const mapa = new Map();
+
+        if (Array.isArray(data)) {
+          data.forEach(u => {
+            const usuario = String(u.usuario || u.username || "").trim();
+            if (!usuario) return;
+            mapa.set(usuario, {
+              area: String(u.area || u.nombre_area || "").trim() || "Sin área",
+              empresa: String(u.empresa || "").trim(),
+              sub_empresa: String(u.sub_empresa || "").trim()
+            });
+          });
+        } else if (data && typeof data === "object") {
+          Object.entries(data).forEach(([usuario, info]) => {
+            const datos = (info && typeof info === "object")
+              ? info
+              : { area: info, empresa: "" };
+            mapa.set(String(usuario).trim(), {
+              area: String(datos.area || "").trim() || "Sin área",
+              empresa: String(datos.empresa || "").trim(),
+              sub_empresa: String(datos.sub_empresa || "").trim()
+            });
+          });
+        }
+
+        mapaAreasPorUsuario = mapa;
+      } catch (error) {
+        console.error("Error consultando áreas de usuarios:", error);
+        mapaAreasPorUsuario = new Map();
+      } finally {
+        cargaAreasEnCurso = null;
+      }
+      return mapaAreasPorUsuario;
+    })();
+  }
+
+  return cargaAreasEnCurso;
+}
+
+async function actualizarChartAreas(data) {  const areas = await obtenerAreasPorUsuario();
+
+  const resumen = contarPor(
+    data,
+    "usuario",
+    v => {
+      const usuario = String(v || "").trim();
+      if (!usuario) return "Sin usuario";
+      return ((areas.get(usuario) || {}).area || "Sin área");
+    }
+  );
+
+  actualizarChart(
+    "chartAreas",
+    "bar",
+    resumen.map(x=>x[0]),
+    resumen.map(x=>x[1]),
+    true
+  );
 }
 
 function seleccionarReporteDesdeMapa(id) {
@@ -2437,6 +2898,11 @@ async function cargarReportes() {
     }
 
     reportes = data;
+
+    // Cargar primero el catálogo vigente de técnicos y sus asignaciones.
+    // Así los filtros incluyen empresas/contratistas aunque no tengan
+    // reportes históricos o no hayan reportado dentro del período.
+    await obtenerAreasPorUsuario();
 
     poblarUsuarios(reportes);
     poblarEmpresas(reportes);
@@ -2987,13 +3453,7 @@ document.addEventListener("change", function(event) {
     setBar("bar_trabajados", pct(trabajados, total));
     setBar("bar_sin_gestion", pct(total - trabajados, total));
 
-    const estadosSAP = [
-      ["bar_sap_generada", "Generada"],
-      ["bar_sap_pendiente", "Pendiente de asignar"],
-      ["bar_sap_tratamiento", "En tratamiento"],
-      ["bar_sap_resuelta", "Resuelta"],
-      ["bar_sap_anulada", "Anulada"]
-    ];
+    const estadosSAP = [];
     const conOS = data.filter(r => String(r.orden_sap || "").trim()).length;
     estadosSAP.forEach(([id, estado]) => {
       const n = data.filter(r =>
@@ -3003,11 +3463,7 @@ document.addEventListener("change", function(event) {
       setBar(id, pct(n, conOS));
     });
 
-    const estadosSeg = [
-      ["bar_seg_sin", "SIN_SEGUIMIENTO"],
-      ["bar_seg_pendiente", "PENDIENTE"],
-      ["bar_seg_resuelto", "RESUELTO"]
-    ];
+    const estadosSeg = [];
     estadosSeg.forEach(([id, estado]) => {
       const n = data.filter(r => valorEstadoSeguimiento(r) === estado).length;
       setBar(id, pct(n, total));
